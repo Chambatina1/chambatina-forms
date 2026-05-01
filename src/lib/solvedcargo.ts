@@ -32,6 +32,7 @@ export async function login(): Promise<SolvedCargoSession> {
     return cachedSession.session;
   }
 
+  console.log("[SolvedCargo] Login...");
   const response = await fetch(API_PATH, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -50,6 +51,7 @@ export async function login(): Promise<SolvedCargoSession> {
   if (!match) throw new Error("No se obtuvo PHPSESSID");
 
   const data = await response.json();
+  console.log(`[SolvedCargo] Login OK: iduser=${data.iduser} enterprise=${data.identerprise}`);
   if (!data.iduser) throw new Error("Login no devolvió datos");
 
   const session: SolvedCargoSession = {
@@ -104,17 +106,27 @@ async function insertRecord(
   option: string,
   params: string
 ): Promise<string> {
+  const body = new URLSearchParams({
+    funcname: "insertRecord",
+    option,
+    params,
+  }).toString();
+
+  console.log(`[SolvedCargo] insertRecord option=${option} params=${params.substring(0, 200)}`);
+
   const response = await fetch(API_PATH, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Cookie: buildCookie(session),
     },
-    body: `funcname=insertRecord&option=${option}&params=${params}`,
+    body,
   });
 
   if (!response.ok) throw new Error(`insertRecord falló: ${response.status}`);
-  return (await response.text()).trim();
+  const text = (await response.text()).trim();
+  console.log(`[SolvedCargo] insertRecord response=${text}`);
+  return text;
 }
 
 // ============================================
@@ -168,13 +180,15 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
   try {
     // ---- PASO 1: Insertar SHIPPER (embarcador) ----
     // Schema: [0]="" [1]=name [2]=address [3]=passport [4]=phone [5]=birthday [6]=nacionality [7]=email [8]=observation [9]=enterprise
-    const shipperName = sanitize(data.sname || "CHAMBATINA+MIAMI");
-    const shipperAddr = sanitize(data.saddress || "MIAMI+FL+USA");
+    const shipperName = sanitize(data.sname || "CHAMBATINA MIAMI");
+    const shipperAddr = sanitize(data.saddress || "MIAMI FL USA");
     const shipperPhone = sanitize(data.sphone || "");
     const shipperEmail = sanitize(data.semail || "");
 
     const shipperParams = `;${shipperName};${shipperAddr};;;${shipperPhone};;USA;${shipperEmail};;${session.identerprise}`;
+    console.log(`[SolvedCargo] Creando shipper: ${data.sname}`);
     const shipperId = await insertRecord(session, "shipper", shipperParams);
+    console.log(`[SolvedCargo] Shipper creado: ID=${shipperId}`);
 
     // ---- PASO 2: Insertar CONSIGNEE (destinatario) ----
     // Schema: [0]="" [1]=firstname [2]=secondname [3]=surname [4]=sndsurname [5]=identity [6]=telephone [7]=mobile [8]=passport [9]="" [10]=street [11]=entre [12]=y [13]=num [14]=apto [15]=piso [16]=enterprise
@@ -182,13 +196,15 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
     const firstname = sanitize(parts[0] || "");
     const secondname = sanitize(parts[1] || "");
     const surname = sanitize(parts[2] || "");
-    const sndsurname = sanitize(parts.slice(3).join("+") || "");
+    const sndsurname = sanitize(parts.slice(3).join(" ") || "");
     const identity = sanitize(data.cidentity);
     const phone = sanitize(data.cphone);
     const street = sanitize(data.caddress);
 
     const consigneeParams = `;${firstname};${secondname};${surname};${sndsurname};${identity};${phone};;;${street};;;;;${session.identerprise}`;
+    console.log(`[SolvedCargo] Creando consignee: ${data.cname}`);
     const consigneeId = await insertRecord(session, "consignee", consigneeParams);
+    console.log(`[SolvedCargo] Consignee creado: ID=${consigneeId}`);
 
     // ---- PASO 3: Insertar RESERVE (envío) ----
     // 41 campos: índices 0-40
@@ -242,7 +258,9 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
       "",                    // [40] entrydate
     ].join(";");
 
+    console.log(`[SolvedCargo] Creando reserve: goods=${data.description} weight=${data.weight}`);
     const reserveId = await insertRecord(session, "reservef", reserveParams);
+    console.log(`[SolvedCargo] Reserve creado: ID=${reserveId}`);
 
     return {
       success: true,

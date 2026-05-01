@@ -9,28 +9,41 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+    console.log(`[Admin Sync] Iniciando sync para envio: ${id}`);
 
     // Obtener el envio de la BD local
     const shipment = await db.shipment.findUnique({ where: { id } });
     if (!shipment) {
+      console.log(`[Admin Sync] Envio no encontrado: ${id}`);
       return NextResponse.json(
         { success: false, message: "Envio no encontrado" },
         { status: 404 }
       );
     }
 
+    const s = shipment as Record<string, unknown>;
+
     // Verificar si ya fue sincronizado
-    if ((shipment as Record<string, unknown>).syncedToApi) {
+    if (s.syncedToApi) {
+      console.log(`[Admin Sync] Envio ya sincronizado: ${id}`);
       return NextResponse.json({
         success: false,
         message: "Este envio ya fue cargado a SolvedCargo anteriormente.",
         alreadySynced: true,
-        reserveId: (shipment as Record<string, unknown>).cpkNumber,
+        reserveId: s.cpkNumber,
       });
     }
 
+    console.log(`[Admin Sync] Datos del envio:`, JSON.stringify({
+      sname: s.sname,
+      cname: s.cname,
+      cidentity: s.cidentity,
+      weight: s.weight,
+      npieces: s.npieces,
+      description: s.description,
+    }));
+
     // Preparar datos para SolvedCargo
-    const s = shipment as Record<string, unknown>;
     const result = await createFullShipment({
       sname: (s.sname as string) || "",
       sphone: (s.sphone as string) || "",
@@ -46,6 +59,8 @@ export async function POST(
       description: (s.description as string) || "",
       cnotes: (s.cnotes as string) || "",
     });
+
+    console.log(`[Admin Sync] Resultado SolvedCargo:`, JSON.stringify(result));
 
     if (result.success) {
       // Actualizar BD local con resultado exitoso
@@ -63,7 +78,7 @@ export async function POST(
 
       return NextResponse.json({
         success: true,
-        message: `Envio cargado a SolvedCargo exitosamente. Reserve ID: ${result.reserveId}`,
+        message: `Envio cargado a SolvedCargo exitosamente. Reserve ID: ${result.reserveId}. Shipper: ${result.shipperId}. Consignee: ${result.consigneeId}`,
         shipperId: result.shipperId,
         consigneeId: result.consigneeId,
         reserveId: result.reserveId,
@@ -85,9 +100,13 @@ export async function POST(
       });
     }
   } catch (error) {
-    console.error("Error en sync:", error);
+    console.error("[Admin Sync] Error:", error);
     return NextResponse.json(
-      { success: false, message: "Error interno del servidor", error: error instanceof Error ? error.message : "Desconocido" },
+      {
+        success: false,
+        message: "Error interno del servidor",
+        error: error instanceof Error ? error.message : "Desconocido",
+      },
       { status: 500 }
     );
   }
