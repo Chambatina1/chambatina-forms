@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { createFullShipment } from "@/lib/solvedcargo";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validar campos requeridos
+    // Validar campos requeridos del destinatario
     if (!body.cname || !body.cidentity) {
       return NextResponse.json(
         {
           success: false,
-          message: "Los campos 'Nombre del destinatario' y 'Carnet de identidad' son obligatorios.",
+          message: "Nombre del destinatario y Carnet de identidad son obligatorios.",
         },
         { status: 400 }
       );
@@ -20,17 +21,25 @@ export async function POST(request: NextRequest) {
     const cleanIdentity = body.cidentity.replace(/\s/g, "");
     if (cleanIdentity.length < 11) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "El carnet de identidad debe tener al menos 11 caracteres.",
-        },
+        { success: false, message: "El carnet de identidad debe tener al menos 11 caracteres." },
         { status: 400 }
       );
     }
 
-    // Guardar en la base de datos local
+    if (!body.cphone) {
+      return NextResponse.json(
+        { success: false, message: "El telefono del destinatario es obligatorio." },
+        { status: 400 }
+      );
+    }
+
+    // Guardar en BD local primero
     const shipment = await db.shipment.create({
       data: {
+        sname: (body.sname || "").toUpperCase().trim(),
+        sphone: (body.sphone || "").toUpperCase().trim(),
+        saddress: (body.saddress || "").toUpperCase().trim(),
+        semail: (body.semail || "").trim(),
         cname: body.cname.toUpperCase().trim(),
         cidentity: cleanIdentity.toUpperCase(),
         cphone: (body.cphone || "").toUpperCase().trim(),
@@ -43,39 +52,74 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Generar numero de seguimiento local
-    const trackingNumber = `CHB-${String(shipment.id.slice(-8)).toUpperCase()}`;
+    // Intentar crear en SolvedCargo API
+    let apiResult = null;
+    try {
+      apiResult = await createFullShipment({
+        sname: body.sname || "",
+        sphone: body.sphone || "",
+        saddress: body.saddress || "",
+        semail: body.semail || "",
+        cname: body.cname,
+        cidentity: body.cidentity,
+        cphone: body.cphone,
+        caddress: body.caddress || "",
+        cprovince: body.cprovince || "",
+        weight: body.weight || "",
+        npieces: body.npieces || "1",
+        description: body.description || "",
+        cnotes: body.cnotes || "",
+      });
+    } catch (e) {
+      console.error("Error SolvedCargo API:", e);
+    }
+
+    // Actualizar BD con resultado de la API
+    if (apiResult?.success) {
+      await db.shipment.update({
+        where: { id: shipment.id },
+        data: {
+          syncedToApi: true,
+          shipperIdApi: apiResult.shipperId || "",
+          consigneeIdApi: apiResult.consigneeId || "",
+          cpkNumber: apiResult.reserveId || "",
+          apiResponse: apiResult.message,
+          status: "REGISTRADO",
+        },
+      });
+    }
+
+    // Generar número de seguimiento local
+    const trackingNumber = `CHB-${shipment.id.slice(-8).toUpperCase()}`;
 
     return NextResponse.json({
       success: true,
-      message: "Envio registrado exitosamente. Nuestro equipo procesara su solicitud.",
+      message: apiResult?.success
+        ? "Envío registrado en SolvedCargo. El número CPK se generará automáticamente."
+        : "Envío registrado localmente. Se procesará en SolvedCargo shortly.",
       trackingNumber,
       shipmentId: shipment.id,
+      syncedToApi: apiResult?.success || false,
+      reserveId: apiResult?.reserveId,
+      apiMessage: apiResult?.message,
     });
   } catch (error) {
     console.error("Error en API submit:", error);
     return NextResponse.json(
-      {
-        success: false,
-        message: "Error interno del servidor. Intente nuevamente en unos minutos.",
-      },
+      { success: false, message: "Error interno del servidor. Intente nuevamente." },
       { status: 500 }
     );
   }
 }
 
-// GET - Obtener todos los envíos (para admin)
+// GET - Obtener todos los envíos (admin)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const adminKey = searchParams.get("key");
 
-    // Clave admin simple para proteger la vista de envíos
     if (adminKey !== "chambatina-admin-2026") {
-      return NextResponse.json(
-        { success: false, message: "No autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, message: "No autorizado" }, { status: 401 });
     }
 
     const shipments = await db.shipment.findMany({
@@ -83,16 +127,8 @@ export async function GET(request: NextRequest) {
       take: 100,
     });
 
-    return NextResponse.json({
-      success: true,
-      shipments,
-      total: shipments.length,
-    });
+    return NextResponse.json({ success: true, shipments, total: shipments.length });
   } catch (error) {
-    console.error("Error obteniendo envíos:", error);
-    return NextResponse.json(
-      { success: false, message: "Error interno del servidor" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: "Error interno" }, { status: 500 });
   }
 }

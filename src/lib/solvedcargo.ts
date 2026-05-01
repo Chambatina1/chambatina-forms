@@ -9,17 +9,16 @@ const AUTH = {
   user: "GEO MIA",
   password: "GEO**091223",
   identerprise: "55",
-  enterprise: "CHAMBATINA MIAMI",
+  iduser: "101",
 };
 
 interface SolvedCargoSession {
   phpsessid: string;
   iduser: string;
   identerprise: string;
-  enterprise: string;
 }
 
-// Cache de sesión en memoria (dura ~30 min en el server de SolvedCargo)
+// Cache de sesión en memoria (dura ~30 min)
 let cachedSession: {
   session: SolvedCargoSession;
   expiresAt: number;
@@ -29,59 +28,37 @@ let cachedSession: {
 // 1. LOGIN
 // ============================================
 export async function login(): Promise<SolvedCargoSession> {
-  // Reutilizar sesión cacheada si aún es válida (25 min para margen)
   if (cachedSession && Date.now() < cachedSession.expiresAt) {
     return cachedSession.session;
   }
 
-  const body = new URLSearchParams({
-    funcname: "loginUser",
-    user: AUTH.user,
-    password: encodeURIComponent(AUTH.password).replace(/%2A/g, "*").replace(/%2B/g, "+"),
-  });
-
   const response = await fetch(API_PATH, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: body.toString(),
-    redirect: "manual", // No seguir redirects para capturar cookie
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      funcname: "loginUser",
+      user: AUTH.user,
+      password: AUTH.password,
+    }).toString(),
+    redirect: "manual",
   });
 
-  if (!response.ok) {
-    throw new Error(`Login falló con status ${response.status}`);
-  }
+  if (!response.ok) throw new Error(`Login falló: ${response.status}`);
 
-  // Extraer PHPSESSID de la cookie
   const setCookie = response.headers.get("set-cookie") || "";
-  const phpsessidMatch = setCookie.match(/PHPSESSID=([^;]+)/);
-  if (!phpsessidMatch) {
-    throw new Error("No se pudo obtener PHPSESSID del login");
-  }
+  const match = setCookie.match(/PHPSESSID=([^;]+)/);
+  if (!match) throw new Error("No se obtuvo PHPSESSID");
 
-  const phpsessid = phpsessidMatch[1];
-
-  // Parsear respuesta JSON
   const data = await response.json();
-
-  if (!data.iduser) {
-    throw new Error("Login no devolvió datos de usuario");
-  }
+  if (!data.iduser) throw new Error("Login no devolvió datos");
 
   const session: SolvedCargoSession = {
-    phpsessid,
+    phpsessid: match[1],
     iduser: data.iduser,
     identerprise: data.identerprise,
-    enterprise: data.enterprise,
   };
 
-  // Cache por 25 minutos (la sesión dura 30 min)
-  cachedSession = {
-    session,
-    expiresAt: Date.now() + 25 * 60 * 1000,
-  };
-
+  cachedSession = { session, expiresAt: Date.now() + 25 * 60 * 1000 };
   return session;
 }
 
@@ -92,7 +69,7 @@ export async function checkSession(session: SolvedCargoSession): Promise<boolean
   const body = new URLSearchParams({
     funcname: "checkIfValidSession",
     username: AUTH.user,
-    password: encodeURIComponent(AUTH.password).replace(/%2A/g, "*").replace(/%2B/g, "+"),
+    password: AUTH.password,
   });
 
   const response = await fetch(API_PATH, {
@@ -104,93 +81,190 @@ export async function checkSession(session: SolvedCargoSession): Promise<boolean
     body: body.toString(),
   });
 
-  const text = await response.text();
-  // La API devuelve "1" (string), NO "true" ni boolean
-  return text.trim() === "1";
+  return (await response.text()).trim() === "1";
 }
 
 // ============================================
-// 3. OBTENER FILA NUEVA (schema del formulario)
+// HELPERS
 // ============================================
-export async function getNewRow(session: SolvedCargoSession, option: string = "reservef"): Promise<string> {
-  const body = new URLSearchParams({
-    funcname: "getNewRow",
-    option,
-  });
+function buildCookie(session: SolvedCargoSession): string {
+  return `PHPSESSID=${session.phpsessid}`;
+}
 
-  const response = await fetch(API_PATH, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: `PHPSESSID=${session.phpsessid}`,
-    },
-    body: body.toString(),
-  });
-
-  return response.text();
+// Reemplaza espacios con + para evitar bugs de SQL en SolvedCargo
+function sanitize(value: string): string {
+  return value.replace(/ /g, "+");
 }
 
 // ============================================
-// 4. INSERTAR NUEVA FILA (crear envío)
+// 3. INSERT RECORD (genérico)
 // ============================================
-export async function insertRow(
+async function insertRecord(
   session: SolvedCargoSession,
   option: string,
-  formData: Record<string, string>
+  params: string
 ): Promise<string> {
-  const params = new URLSearchParams({
-    funcname: "getInsertRow",
-    option,
-    ...formData,
-  });
-
   const response = await fetch(API_PATH, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: `PHPSESSID=${session.phpsessid}`,
+      Cookie: buildCookie(session),
     },
-    body: params.toString(),
+    body: `funcname=insertRecord&option=${option}&params=${params}`,
   });
 
-  if (!response.ok) {
-    throw new Error(`Insert falló con status ${response.status}`);
-  }
-
-  return response.text();
+  if (!response.ok) throw new Error(`insertRecord falló: ${response.status}`);
+  return (await response.text()).trim();
 }
 
 // ============================================
-// 5. GUARDAR RESERVA COMPLETA
+// 4. FLUJO COMPLETO: Crear envío CPK
 // ============================================
-export async function saveReserve(
-  session: SolvedCargoSession,
-  formData: Record<string, string>
-): Promise<string> {
-  const params = new URLSearchParams({
-    funcname: "saveReserve",
-    ...formData,
-  });
+export interface ShipmentFormData {
+  // Remitente (Shipper)
+  sname: string;
+  sphone: string;
+  saddress: string;
+  semail: string;
+  // Destinatario (Consignee)
+  cname: string;
+  cidentity: string;
+  cphone: string;
+  caddress: string;
+  cprovince: string;
+  // Envío
+  weight: string;
+  npieces: string;
+  description: string;
+  cnotes: string;
+}
 
-  const response = await fetch(API_PATH, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: `PHPSESSID=${session.phpsessid}`,
-    },
-    body: params.toString(),
-  });
+export interface ShipmentResult {
+  success: boolean;
+  shipperId?: string;
+  consigneeId?: string;
+  reserveId?: string;
+  message: string;
+  error?: string;
+}
 
-  if (!response.ok) {
-    throw new Error(`SaveReserve falló con status ${response.status}`);
+export async function createFullShipment(data: ShipmentFormData): Promise<ShipmentResult> {
+  let session: SolvedCargoSession;
+  try {
+    session = await login();
+    const isValid = await checkSession(session);
+    if (!isValid) {
+      cachedSession = null;
+      session = await login();
+    }
+  } catch (e) {
+    return {
+      success: false,
+      message: "Error de conexión con SolvedCargo",
+      error: e instanceof Error ? e.message : "Desconocido",
+    };
   }
 
-  return response.text();
+  try {
+    // ---- PASO 1: Insertar SHIPPER (embarcador) ----
+    // Schema: [0]="" [1]=name [2]=address [3]=passport [4]=phone [5]=birthday [6]=nacionality [7]=email [8]=observation [9]=enterprise
+    const shipperName = sanitize(data.sname || "CHAMBATINA+MIAMI");
+    const shipperAddr = sanitize(data.saddress || "MIAMI+FL+USA");
+    const shipperPhone = sanitize(data.sphone || "");
+    const shipperEmail = sanitize(data.semail || "");
+
+    const shipperParams = `;${shipperName};${shipperAddr};;;${shipperPhone};;USA;${shipperEmail};;${session.identerprise}`;
+    const shipperId = await insertRecord(session, "shipper", shipperParams);
+
+    // ---- PASO 2: Insertar CONSIGNEE (destinatario) ----
+    // Schema: [0]="" [1]=firstname [2]=secondname [3]=surname [4]=sndsurname [5]=identity [6]=telephone [7]=mobile [8]=passport [9]="" [10]=street [11]=entre [12]=y [13]=num [14]=apto [15]=piso [16]=enterprise
+    const parts = data.cname.toUpperCase().trim().split(/\s+/);
+    const firstname = sanitize(parts[0] || "");
+    const secondname = sanitize(parts[1] || "");
+    const surname = sanitize(parts[2] || "");
+    const sndsurname = sanitize(parts.slice(3).join("+") || "");
+    const identity = sanitize(data.cidentity);
+    const phone = sanitize(data.cphone);
+    const street = sanitize(data.caddress);
+
+    const consigneeParams = `;${firstname};${secondname};${surname};${sndsurname};${identity};${phone};;;${street};;;;;${session.identerprise}`;
+    const consigneeId = await insertRecord(session, "consignee", consigneeParams);
+
+    // ---- PASO 3: Insertar RESERVE (envío) ----
+    // 41 campos: índices 0-40
+    // PHP toma tosave=true únicos por fldtbl y los inserta en la tabla reserve
+    const goods = sanitize(data.description || "ENVIO");
+    const quantity = data.npieces || "1";
+    const weight = data.weight || "1";
+    const observation = sanitize(data.cnotes || "");
+
+    const reserveParams = [
+      "",                    // [0] idreserve (auto)
+      session.identerprise,  // [1] identerprise
+      AUTH.iduser,           // [2] iduser
+      "",                    // [3] image
+      "",                    // [4] hbl (auto-generated CPK)
+      "",                    // [5] idreservestate
+      "",                    // [6] shipped
+      "",                    // [7] idloadingguide
+      "",                    // [8] idfbcnumber
+      "",                    // [9] idfbcguide
+      "",                    // [10] idclasification
+      goods,                 // [11] goods/mercancía
+      "",                    // [12] bagnumber
+      new Date().toISOString().split("T")[0], // [13] datereserve
+      "",                    // [14] idpurchaser
+      consigneeId,           // [15] idconsignee
+      "",                    // [16] passport consignee
+      identity,              // [17] cidentity consignee
+      street,                // [18] street consignee
+      phone,                 // [19] ctelephone consignee
+      shipperId,             // [20] idshipper
+      "",                    // [21] spassport shipper
+      "",                    // [22] address shipper
+      "0",                   // [23] multhouse
+      "",                    // [24] pidentity
+      "",                    // [25] ppassport
+      "",                    // [26] ptelephone
+      "0",                   // [27] valuebill
+      "0",                   // [28] valuedoc
+      quantity,              // [29] quantity
+      weight,                // [30] weight
+      "0",                   // [31] volume
+      "0",                   // [32] value
+      "4",                   // [33] idtypecorrespond (4 = FBC/CPK)
+      "",                    // [34] idguidekind
+      "",                    // [35] idguidestate
+      "0",                   // [36] valuedanger
+      "0",                   // [37] valuepaied
+      observation,           // [38] observation
+      "",                    // [39] whnumber
+      "",                    // [40] entrydate
+    ].join(";");
+
+    const reserveId = await insertRecord(session, "reservef", reserveParams);
+
+    return {
+      success: true,
+      shipperId,
+      consigneeId,
+      reserveId,
+      message: `Envío registrado en SolvedCargo (ID: ${reserveId}). El número CPK se generará automáticamente.`,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      message: "Error al crear el envío en SolvedCargo",
+      error: e instanceof Error ? e.message : "Desconocido",
+    };
+  }
 }
 
 // ============================================
-// 6. BUSCAR ENVÍOS (para verificar si se creó)
+// 5. BUSCAR ENVÍOS (parsear HTML)
 // ============================================
+import * as cheerio from "cheerio";
+
 export async function searchShipments(
   session: SolvedCargoSession,
   whereClause: string,
@@ -211,7 +285,7 @@ export async function searchShipments(
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: `PHPSESSID=${session.phpsessid}`,
+      Cookie: buildCookie(session),
     },
     body: body.toString(),
   });
@@ -220,233 +294,36 @@ export async function searchShipments(
   return parseHTMLRows(html);
 }
 
-// ============================================
-// 7. OBTENER REGISTRO ESPECÍFICO
-// ============================================
-export async function getRecord(
-  session: SolvedCargoSession,
-  option: string,
-  idrecord: string
-): Promise<string> {
-  const body = new URLSearchParams({
-    funcname: "getRecord",
-    option,
-    idrecord,
-  });
-
-  const response = await fetch(API_PATH, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: `PHPSESSID=${session.phpsessid}`,
-    },
-    body: body.toString(),
-  });
-
-  return response.text();
-}
-
-// ============================================
-// 8. OBTENER JSON SCHEMA DE TABLA
-// ============================================
-export async function getJsonSchema(
-  session: SolvedCargoSession,
-  option: string = "reservef"
-): Promise<string> {
-  const body = new URLSearchParams({
-    funcname: "getJson",
-    option,
-  });
-
-  const response = await fetch(API_PATH, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: `PHPSESSID=${session.phpsessid}`,
-    },
-    body: body.toString(),
-  });
-
-  return response.text();
-}
-
-// ============================================
-// 9. OBTENER OPCIONES DE UN CAMPO
-// ============================================
-export async function getOptions(
-  session: SolvedCargoSession,
-  option: string,
-  field: string
-): Promise<string> {
-  const body = new URLSearchParams({
-    funcname: "getOptions",
-    option,
-    field,
-  });
-
-  const response = await fetch(API_PATH, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: `PHPSESSID=${session.phpsessid}`,
-    },
-    body: body.toString(),
-  });
-
-  return response.text();
-}
-
-// ============================================
-// PARSEAR HTML (SolvedCargo devuelve HTML, no JSON)
-// ============================================
-import * as cheerio from "cheerio";
-
 export function parseHTMLRows(html: string): Record<string, string>[] {
   const $ = cheerio.load(html);
   const rows: Record<string, string>[] = [];
 
   $("tr[id^='id_tr_']").each((_i, el) => {
     const row: Record<string, string> = {};
-    $(el)
-      .find("td[id^='id_td_']")
-      .each((_j, td) => {
-        const tdId = $(td).attr("id") || "";
-        // Formato: id_td_{fieldname}_{option}_{kind}_{index}
-        const parts = tdId.replace("id_td_", "").split("_");
-        // El campo son los primeros N-3 partes
-        const fieldName = parts.slice(0, parts.length - 3).join("_");
-        const value = $(td).attr("title") || $(td).text().trim();
-        if (fieldName && value) {
-          row[fieldName] = value;
-        }
-      });
-    if (Object.keys(row).length > 0) {
-      rows.push(row);
-    }
+    $(el).find("td[id^='id_td_']").each((_j, td) => {
+      const tdId = $(td).attr("id") || "";
+      const parts = tdId.replace("id_td_", "").split("_");
+      const fieldName = parts.slice(0, parts.length - 3).join("_");
+      const value = $(td).attr("title") || $(td).text().trim();
+      if (fieldName && value) row[fieldName] = value;
+    });
+    if (Object.keys(row).length > 0) rows.push(row);
   });
 
   return rows;
 }
 
 // ============================================
-// FLUJO COMPLETO: Login + Validar + Operar
+// UTILIDADES
 // ============================================
 export async function withSession<T>(
   fn: (session: SolvedCargoSession) => Promise<T>
 ): Promise<T> {
   let session = await login();
-
-  // Verificar si la sesión cacheada sigue siendo válida
   const isValid = await checkSession(session);
   if (!isValid) {
-    // Forzar nuevo login
     cachedSession = null;
     session = await login();
   }
-
   return fn(session);
-}
-
-// ============================================
-// CREAR ENVÍO CPK (función principal)
-// ============================================
-export interface ShipmentData {
-  cname: string; // Nombre del destinatario
-  cidentity: string; // Carnet de identidad
-  cphone?: string; // Teléfono
-  caddress?: string; // Dirección
-  ccity?: string; // Ciudad
-  cprovince?: string; // Provincia
-  weight?: string; // Peso
-  npieces?: string; // Cantidad de bultos
-  description?: string; // Descripción de mercancía
-  cnotes?: string; // Notas adicionales
-}
-
-export async function createShipment(data: ShipmentData): Promise<{
-  success: boolean;
-  cpk?: string;
-  message: string;
-  rawResponse?: string;
-}> {
-  return withSession(async (session) => {
-    try {
-      // Primero obtener el formulario vacío para ver la estructura
-      const newRowHtml = await getNewRow(session, "reservef");
-
-      // Extraer los hidden fields del formulario (si hay)
-      const $ = cheerio.load(newRowHtml);
-      const hiddenFields: Record<string, string> = {};
-
-      $("input[type='hidden']").each((_i, el) => {
-        const name = $(el).attr("name");
-        const value = $(el).attr("value") || "";
-        if (name) {
-          hiddenFields[name] = value;
-        }
-      });
-
-      // Preparar los datos del formulario
-      const formData: Record<string, string> = {
-        ...hiddenFields,
-        // Datos del cliente (todo en mayúsculas)
-        nameconsignee: data.cname.toUpperCase(),
-        cname: data.cname.toUpperCase(),
-        cidentity: data.cidentity.toUpperCase(),
-        // Datos adicionales
-        ...(data.cphone ? { phoneconsignee: data.cphone.toUpperCase(), cphone: data.cphone.toUpperCase() } : {}),
-        ...(data.caddress ? { addressconsignee: data.caddress.toUpperCase() } : {}),
-        ...(data.ccity ? { cityconsignee: data.ccity.toUpperCase() } : {}),
-        ...(data.cprovince ? { provinceconsignee: data.cprovince.toUpperCase() } : {}),
-        ...(data.weight ? { weight: data.weight } : {}),
-        ...(data.npieces ? { npieces: data.npieces } : {}),
-        ...(data.description ? { description: data.description.toUpperCase() } : {}),
-        ...(data.cnotes ? { cnotes: data.cnotes.toUpperCase() } : {}),
-        // Datos de la empresa
-        identerprise: session.identerprise,
-      };
-
-      // Intentar con saveReserve primero (es el más completo)
-      const result = await saveReserve(session, formData);
-
-      // Buscar si se generó un CPK en la respuesta
-      const cpkMatch = result.match(/CPK-\d+/);
-      if (cpkMatch) {
-        return {
-          success: true,
-          cpk: cpkMatch[0],
-          message: `Envío creado exitosamente: ${cpkMatch[0]}`,
-          rawResponse: result,
-        };
-      }
-
-      // Si no encontramos CPK, buscar por el nombre del consignatario
-      const searchResults = await searchShipments(
-        session,
-        `(cname LIKE "%${data.cname.toUpperCase()}%") AND (r.identerprise = ${session.identerprise})`
-      );
-
-      if (searchResults.length > 0) {
-        const latest = searchResults[searchResults.length - 1];
-        return {
-          success: true,
-          cpk: latest.hbl || latest.idreserve || "PENDIENTE",
-          message: `Envío creado: ${latest.hbl || latest.idreserve}`,
-          rawResponse: result,
-        };
-      }
-
-      // Si todo falla, devolver la respuesta raw
-      return {
-        success: true,
-        message: "Envío registrado. Verifica en el sistema para obtener el número CPK.",
-        rawResponse: result,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : "Error desconocido al crear el envío",
-      };
-    }
-  });
 }

@@ -29,3 +29,29 @@ Stage Summary:
 - Número de seguimiento local CHB-XXXXXXXX
 - Preparado para deploy independiente
 
+---
+Task ID: 2
+Agent: Main Agent
+Task: Agregar sección de Remitente (Embarcador) y completar integración SolvedCargo API
+
+Work Log:
+- Analizado esquema completo de shipper (10 campos) y purchaser (18 campos) en SolvedCargo
+- Descubierto que insertRecord usa params separados por ; con índices posicionales
+- Encontrado bug de off-by-one en params de reserve (necesitan exactamente 41 valores índices 0-40)
+- Determinado que la API reemplaza espacios por guiones en SQL (usar + para valores con espacios)
+- Probado flujo completo exitoso: insert shipper → insert consignee → insert reserve
+- API devuelve IDs: shipper=48546, consignee=76480, reserve=302055
+- Lista de búsqueda en SolvedCargo tiene limitaciones (solo busquedas exactas por HBL funcionan)
+- Actualizado schema Prisma con campos de remitente (sname, sphone, saddress, semail, shipperIdApi, consigneeIdApi)
+- Actualizado solvedcargo.ts con createFullShipment() que hace el flujo de 3 pasos
+- Actualizado API route para guardar en BD local Y enviar a SolvedCargo simultáneamente
+- Agregada sección "Datos del Remitente" al formulario con campos: nombre, teléfono, email, dirección
+- Página de confirmación muestra si se sincronizó con SolvedCargo y el ID de reserva
+
+Stage Summary:
+- Formulario completo con 4 secciones: Remitente, Destinatario, Dirección, Envío
+- Integración con SolvedCargo API funcional (3-step insert: shipper → consignee → reserve)
+- Los valores con espacios se sanitizan reemplazando por + para evitar bugs SQL
+- BD local sirve como backup cuando API falla
+- El número CPK se genera automáticamente por SolvedCargo pero no se puede recuperar vía API
+

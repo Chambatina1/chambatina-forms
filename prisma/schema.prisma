@@ -9,7 +9,12 @@ datasource db {
 
 model Shipment {
   id            String   @id @default(cuid())
-  // Datos del destinatario
+  // Datos del remitente (embarcador - quien envia desde Miami)
+  sname         String   @default("") // Nombre del remitente
+  sphone        String   @default("") // Telefono del remitente
+  saddress      String   @default("") // Direccion del remitente
+  semail        String   @default("") // Email del remitente
+  // Datos del destinatario (consignatario - quien recibe en Cuba)
   cname         String   // Nombre completo del destinatario
   cidentity     String   // Carnet de identidad
   cphone        String   // Telefono
@@ -20,10 +25,14 @@ model Shipment {
   npieces       String   @default("1") // Cantidad de bultos
   description   String   @default("") // Descripcion de mercancia
   cnotes        String   @default("") // Notas adicionales
+  // IDs de SolvedCargo
+  shipperIdApi  String   @default("") // ID del shipper creado en API
+  consigneeIdApi String  @default("") // ID del consignee creado en API
   // Estado y seguimiento
   cpkNumber     String   @default("") // Numero CPK asignado manualmente
   status        String   @default("PENDIENTE") // PENDIENTE, REGISTRADO, EN_TRANSITO, ENTREGADO
   syncedToApi   Boolean  @default(false) // Si se registro en SolvedCargo API
+  apiResponse   String   @default("") // Respuesta raw de la API
   // Metadatos
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
