@@ -1,57 +1,31 @@
 ---
 Task ID: 1
 Agent: Main Agent
-Task: Improve Plataforma Chambatina - Remove WhatsApp button, reposition TikTok, create marketplace
+Task: Crear formulario web independiente para registro de envíos Chambatina
 
 Work Log:
-- Cloned repository from GitHub
-- Analyzed codebase structure (Next.js + Prisma + Tailwind)
-- Removed WhatsAppFloat component from marketing.tsx (dead code cleanup)
-- Repositioned TikTokFloat: button from bottom-20 left-4 to bottom-24 right-4, popup from bottom-36 left-4 to bottom-40 right-4
-- Created standalone marketplace page at /app/marketplace/page.tsx with hero, search, filters, cards, pagination, CTA
-- Verified build passes with zero errors
+- Inicializado proyecto Next.js 16 con fullstack dev environment
+- Analizado API completa de SolvedCargo (login, getListRecord, insertRecord, etc.)
+- Descubierto que la API devuelve HTML tablas (no JSON), se parsea con cheerio
+- Probada inserción de registros via API - found backend SQL bugs with string values
+- Decisión: usar base de datos local SQLite + Prisma como backend primario
+- Instalado cheerio para parsing de respuestas HTML
+- Creado src/lib/solvedcargo.ts con cliente completo de API SolvedCargo
+- Creado schema Prisma con modelo Shipment (cname, cidentity, cphone, caddress, cprovince, weight, npieces, description, cnotes, cpkNumber, status, syncedToApi)
+- Creado API route POST /api/submit para registrar envíos
+- Creado API route GET /api/submit con autenticación admin
+- Creado API route PATCH/DELETE /api/shipments para gestionar envíos
+- Diseñado formulario público con 3 secciones: Datos del Destinatario, Dirección, Datos del Envío
+- Implementado auto-uppercase en todos los campos de texto
+- Validaciones completas (campos obligatorios, longitud de carnet, peso)
+- Página de confirmación con número de seguimiento CHB-XXXXXXXX
+- Botón copiar número y resumen de datos enviados
+- Generado logo Chambatina con IA
 
 Stage Summary:
-- WhatsApp floating button completely removed
-- TikTok button repositioned to right side, above mobile bottom bar
-- New /marketplace route created as independent public page
-- Build successful
-
----
-Task ID: 2
-Agent: Main Agent
-Task: Fix Formularios Publicos - 5 bugs que impedian funcionar la feature
-
-Work Log:
-- Diagnosticado: el commit anterior (e19ca51) resolvió el conflicto de slugs pero eliminó por error las conexiones UI del panel de formularios
-- Bug 1: store.ts - AdminView type no incluía 'public-forms'
-- Bug 2: navbar.tsx - Faltaba el botón "Formularios" en adminNavItems
-- Bug 3: page.tsx - Faltaba import de PublicFormsAdmin y case 'public-forms'
-- Bug 4: [code]/route.ts - Usaba campo Prisma 'code' en vez de 'codigo'
-- Bug 5: submit/route.ts - Usaba campo Prisma 'code' en vez de 'codigo'
-- Agregado 'prisma db push' al build script para auto-crear tablas PublicForm y PublicFormSubmission
-- Build local exitoso: 37 rutas compiladas sin errores
-- Commit 7bf5239 pushed a GitHub origin/main
-
-Stage Summary:
-- Los 5 bugs corregidos sin tocar código existente
-- Botón "Formularios" visible en el panel admin
-- Nombres de campos Prisma corregidos (codigo)
-- Tablas DB se crearán automáticamente en el deploy de Render
-- Push exitoso a GitHub, Render auto-deploying
----
-Task ID: 1
-Agent: Main Agent
-Task: Cambiar botón "Servicio" a "Marketplace" y navegar al diseño del marketplace
-
-Work Log:
-- Identificado navbar público: ya decía "Marketplace" pero abría en nueva pestaña
-- Cambiado admin nav label de "Servicios" a "Marketplace" (línea 298)
-- Cambiado comportamiento del botón Marketplace: de window.open (nueva tab) a window.location.href (misma pestaña)
-
-Stage Summary:
-- Archivo modificado: /home/z/my-project/Plataformachambatina/src/components/chambatina/navbar.tsx
-- Admin nav item ahora muestra "Marketplace" en vez de "Servicios"
-- Botón público Marketplace ahora navega a /marketplace en la misma pestaña
-- El diseño del marketplace standalone en /marketplace/page.tsx se carga correctamente
+- Formulario funcional y responsive
+- Base de datos SQLite configurada con Prisma
+- API routes para submit, list, update y delete de envíos
+- Número de seguimiento local CHB-XXXXXXXX
+- Preparado para deploy independiente
 
