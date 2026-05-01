@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { createFullShipment } from "@/lib/solvedcargo";
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +32,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Guardar en BD local primero
+    // Guardar en BD local (sin sincronizar a SolvedCargo automaticamente)
     const shipment = await db.shipment.create({
       data: {
         sname: (body.sname || "").toUpperCase().trim(),
@@ -49,59 +48,20 @@ export async function POST(request: NextRequest) {
         npieces: body.npieces || "1",
         description: (body.description || "").toUpperCase().trim(),
         cnotes: (body.cnotes || "").toUpperCase().trim(),
+        syncedToApi: false,
+        status: "PENDIENTE",
       },
     });
 
-    // Intentar crear en SolvedCargo API
-    let apiResult = null;
-    try {
-      apiResult = await createFullShipment({
-        sname: body.sname || "",
-        sphone: body.sphone || "",
-        saddress: body.saddress || "",
-        semail: body.semail || "",
-        cname: body.cname,
-        cidentity: body.cidentity,
-        cphone: body.cphone,
-        caddress: body.caddress || "",
-        cprovince: body.cprovince || "",
-        weight: body.weight || "",
-        npieces: body.npieces || "1",
-        description: body.description || "",
-        cnotes: body.cnotes || "",
-      });
-    } catch (e) {
-      console.error("Error SolvedCargo API:", e);
-    }
-
-    // Actualizar BD con resultado de la API
-    if (apiResult?.success) {
-      await db.shipment.update({
-        where: { id: shipment.id },
-        data: {
-          syncedToApi: true,
-          shipperIdApi: apiResult.shipperId || "",
-          consigneeIdApi: apiResult.consigneeId || "",
-          cpkNumber: apiResult.reserveId || "",
-          apiResponse: apiResult.message,
-          status: "REGISTRADO",
-        },
-      });
-    }
-
-    // Generar número de seguimiento local
+    // Generar numero de seguimiento local
     const trackingNumber = `CHB-${shipment.id.slice(-8).toUpperCase()}`;
 
     return NextResponse.json({
       success: true,
-      message: apiResult?.success
-        ? "Envío registrado en SolvedCargo. El número CPK se generará automáticamente."
-        : "Envío registrado localmente. Se procesará en SolvedCargo shortly.",
+      message: "Envio registrado. Un administrador lo cargara a SolvedCargo.",
       trackingNumber,
       shipmentId: shipment.id,
-      syncedToApi: apiResult?.success || false,
-      reserveId: apiResult?.reserveId,
-      apiMessage: apiResult?.message,
+      syncedToApi: false,
     });
   } catch (error) {
     console.error("Error en API submit:", error);
@@ -112,7 +72,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - Obtener todos los envíos (admin)
+// GET - Obtener todos los envios (admin)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
