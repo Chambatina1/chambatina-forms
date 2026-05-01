@@ -39,3 +39,19 @@ Stage Summary:
 - Nombres de campos Prisma corregidos (codigo)
 - Tablas DB se crearán automáticamente en el deploy de Render
 - Push exitoso a GitHub, Render auto-deploying
+---
+Task ID: 1
+Agent: Main Agent
+Task: Cambiar botón "Servicio" a "Marketplace" y navegar al diseño del marketplace
+
+Work Log:
+- Identificado navbar público: ya decía "Marketplace" pero abría en nueva pestaña
+- Cambiado admin nav label de "Servicios" a "Marketplace" (línea 298)
+- Cambiado comportamiento del botón Marketplace: de window.open (nueva tab) a window.location.href (misma pestaña)
+
+Stage Summary:
+- Archivo modificado: /home/z/my-project/Plataformachambatina/src/components/chambatina/navbar.tsx
+- Admin nav item ahora muestra "Marketplace" en vez de "Servicios"
+- Botón público Marketplace ahora navega a /marketplace en la misma pestaña
+- El diseño del marketplace standalone en /marketplace/page.tsx se carga correctamente
+
