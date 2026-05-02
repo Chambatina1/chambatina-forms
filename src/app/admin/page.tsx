@@ -43,6 +43,8 @@ interface Shipment {
   sphone: string;
   saddress: string;
   semail: string;
+  sbirthday: string;
+  snacionality: string;
   cname: string;
   cidentity: string;
   cphone: string;
@@ -485,6 +487,14 @@ export default function AdminPage() {
                                           <p>
                                             <span className="text-muted-foreground">Direccion:</span>{" "}
                                             {shipment.saddress || "-"}
+                                          </p>
+                                          <p>
+                                            <span className="text-muted-foreground">Fecha nacimiento:</span>{" "}
+                                            {shipment.sbirthday || "-"}
+                                          </p>
+                                          <p>
+                                            <span className="text-muted-foreground">Lugar de origen:</span>{" "}
+                                            {shipment.snacionality || "-"}
                                           </p>
                                         </div>
                                       </div>

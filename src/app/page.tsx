@@ -42,6 +42,8 @@ interface FormData {
   sphone: string;
   saddress: string;
   semail: string;
+  sbirthday: string;
+  snacionality: string;
   cname: string;
   cidentity: string;
   cphone: string;
@@ -77,7 +79,7 @@ function toUpperCase(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement
 
 export default function ShipmentFormPage() {
   const [formData, setFormData] = useState<FormData>({
-    sname: "", sphone: "", saddress: "", semail: "",
+    sname: "", sphone: "", saddress: "", semail: "", sbirthday: "", snacionality: "",
     cname: "", cidentity: "", cphone: "", caddress: "", cprovince: "",
     weight: "", npieces: "1", description: "",
   });
@@ -97,6 +99,8 @@ export default function ShipmentFormPage() {
     // Remitente
     if (!formData.sname.trim()) e.sname = "El nombre del remitente es obligatorio";
     if (!formData.sphone.trim()) e.sphone = "El telefono del remitente es obligatorio";
+    if (!formData.sbirthday) e.sbirthday = "La fecha de nacimiento es obligatoria";
+    if (!formData.snacionality) e.snacionality = "Seleccione el lugar de origen";
     // Destinatario
     if (!formData.cname.trim()) e.cname = "El nombre del destinatario es obligatorio";
     else if (formData.cname.trim().length < 3) e.cname = "Minimo 3 caracteres";
@@ -133,7 +137,7 @@ export default function ShipmentFormPage() {
   const handleReset = () => {
     setResult(null);
     setFormData({
-      sname: "", sphone: "", saddress: "", semail: "",
+      sname: "", sphone: "", saddress: "", semail: "", sbirthday: "", snacionality: "",
       cname: "", cidentity: "", cphone: "", caddress: "", cprovince: "",
       weight: "", npieces: "1", description: "",
     });
@@ -189,6 +193,8 @@ export default function ShipmentFormPage() {
                     <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: "#713f12" }}>
                       <div><span className="font-medium">Remitente:</span> {formData.sname.toUpperCase()}</div>
                       <div><span className="font-medium">Tel remitente:</span> {formData.sphone}</div>
+                      <div><span className="font-medium">Fecha nac remitente:</span> {formData.sbirthday || "-"}</div>
+                      <div><span className="font-medium">Origen remitente:</span> {formData.snacionality || "-"}</div>
                       <div><span className="font-medium">Destinatario:</span> {formData.cname.toUpperCase()}</div>
                       <div><span className="font-medium">CI:</span> {formData.cidentity}</div>
                       <div><span className="font-medium">Tel destinatario:</span> {formData.cphone}</div>
@@ -302,6 +308,39 @@ export default function ShipmentFormPage() {
                     <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                     <Textarea id="saddress" placeholder="Ej: 123 NW 42ND ST, MIAMI FL 33125" className="pl-10 resize-none" rows={2}
                       value={formData.saddress} onChange={(e) => { toUpperCase(e); updateField("saddress", e.target.value); }} style={{ textTransform: "uppercase" }} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="sbirthday" className="text-sm font-medium">Fecha de nacimiento del remitente *</Label>
+                    <div className="relative">
+                      <Input id="sbirthday" type="date" className="w-full" value={formData.sbirthday}
+                        onChange={(e) => updateField("sbirthday", e.target.value)} max={new Date().toISOString().split("T")[0]} />
+                    </div>
+                    {errors.sbirthday && <p className="text-red-500 text-xs">{errors.sbirthday}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="snacionality" className="text-sm font-medium">Lugar de origen (pais) *</Label>
+                    <Select value={formData.snacionality} onValueChange={(val) => updateField("snacionality", val)}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Seleccione el pais" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USA">USA</SelectItem>
+                        <SelectItem value="CUB">CUB</SelectItem>
+                        <SelectItem value="VENEZUELA">VENEZUELA</SelectItem>
+                        <SelectItem value="COLOMBIA">COLOMBIA</SelectItem>
+                        <SelectItem value="MEXICO">MEXICO</SelectItem>
+                        <SelectItem value="REPUBLICA DOMINICANA">REPUBLICA DOMINICANA</SelectItem>
+                        <SelectItem value="PANAMA">PANAMA</SelectItem>
+                        <SelectItem value="NICARAGUA">NICARAGUA</SelectItem>
+                        <SelectItem value="HONDURAS">HONDURAS</SelectItem>
+                        <SelectItem value="ECUADOR">ECUADOR</SelectItem>
+                        <SelectItem value="PERU">PERU</SelectItem>
+                        <SelectItem value="ESPANA">ESPANA</SelectItem>
+                        <SelectItem value="ITALIA">ITALIA</SelectItem>
+                        <SelectItem value="OTRO">OTRO</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.snacionality && <p className="text-red-500 text-xs">{errors.snacionality}</p>}
                   </div>
                 </div>
               </CardContent>

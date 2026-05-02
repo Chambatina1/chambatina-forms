@@ -52,6 +52,8 @@ export async function POST(
       sphone: (s.sphone as string) || "",
       saddress: (s.saddress as string) || "",
       semail: (s.semail as string) || "",
+      sbirthday: (s.sbirthday as string) || "",
+      snacionality: (s.snacionality as string) || "",
       cname: (s.cname as string) || "",
       cidentity: (s.cidentity as string) || "",
       cphone: (s.cphone as string) || "",

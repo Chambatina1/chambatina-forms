@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
         sphone: (body.sphone || "").toUpperCase().trim(),
         saddress: (body.saddress || "").toUpperCase().trim(),
         semail: (body.semail || "").trim(),
+        sbirthday: (body.sbirthday || ""),
+        snacionality: (body.snacionality || "").toUpperCase().trim(),
         cname: body.cname.toUpperCase().trim(),
         cidentity: cleanIdentity.toUpperCase(),
         cphone: (body.cphone || "").toUpperCase().trim(),

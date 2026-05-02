@@ -163,6 +163,8 @@ export interface ShipmentFormData {
   sphone: string;
   saddress: string;
   semail: string;
+  sbirthday: string;
+  snacionality: string;
   // Destinatario (Consignee)
   cname: string;
   cidentity: string;
@@ -218,8 +220,8 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
       shipperAddr,  // [2] address
       "",           // [3] passport
       shipperPhone, // [4] phone
-      "2000-01-01", // [5] birthday (fecha genérica requerida)
-      "USA",        // [6] nacionality
+      data.sbirthday || "2000-01-01", // [5] birthday
+      data.snacionality || "USA",     // [6] nacionality
       shipperEmail, // [7] email
       "",           // [8] observation
       session.identerprise, // [9] identerprise
@@ -236,40 +238,31 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
     // [10]=street [11]=building [12]=between1 [13]=between2
     // [14]=apartment [15]=floor [16]=idmunicipality [17]=idprovince
     // [18]=email [19]=observation [20]=identerprise
-    const nameParts = data.cname.toUpperCase().trim().split(/\s+/);
-    const firstname = sanitize(nameParts[0] || "");
-    const secondname = sanitize(nameParts[1] || "");
-    const surname = sanitize(nameParts[2] || "");
-    const sndsurname = sanitize(nameParts.slice(3).join(" ") || "");
-    const identity = sanitize(data.cidentity);
-    const phone = sanitize(data.cphone);
-    const street = sanitize(data.caddress);
-
     const consigneeParams = [
-      "",           // [0] idconsignee (auto)
-      firstname,    // [1] firstname (requerido)
-      secondname,   // [2] secondname
-      surname,      // [3] surname (requerido)
-      sndsurname,   // [4] sndsurname (requerido)
-      "",           // [5] passport
-      identity,     // [6] identity (requerido - carnet)
-      "CUB",        // [7] nacionality
-      phone,        // [8] telephone (requerido)
-      "",           // [9] mobile
-      street,       // [10] street (requerido)
-      "",           // [11] building
-      "",           // [12] between1
-      "",           // [13] between2
-      "",           // [14] apartment
-      "",           // [15] floor
-      "1",          // [16] idmunicipality (FK, default 1)
-      "1",          // [17] idprovince (FK, default 1)
-      "",           // [18] email (vacío para evitar error con @)
-      "",           // [19] observation
-      session.identerprise, // [20] identerprise
+      "",              // [0] idconsignee (auto)
+      data.cname.toUpperCase().trim(),  // [1] firstname (FULL NAME, no split)
+      "",              // [2] secondname (empty)
+      "",              // [3] surname (empty)
+      "",              // [4] sndsurname (empty)
+      "",              // [5] passport
+      sanitize(data.cidentity),  // [6] identity
+      "",              // [7] nacionality
+      sanitize(data.cphone),     // [8] telephone
+      "",              // [9] mobile
+      sanitize(data.caddress || ""), // [10] street
+      "",              // [11] building
+      "",              // [12] between1
+      "",              // [13] between2
+      "",              // [14] apartment
+      "",              // [15] floor
+      "",              // [16] idmunicipality (empty - not collected)
+      data.cprovince || "",      // [17] idprovince (TEXT like "LA HABANA", not number!)
+      "",              // [18] email
+      "",              // [19] observation
+      session.identerprise,      // [20] identerprise
     ].join(";");
 
-    console.log(`[SolvedCargo] Creando consignee: ${firstname} ${surname} identity=${identity}`);
+    console.log(`[SolvedCargo] Creando consignee: ${data.cname.toUpperCase().trim()} identity=${data.cidentity}`);
     const consigneeId = await insertRecord(session, "consignee", consigneeParams);
     console.log(`[SolvedCargo] Consignee creado: ID=${consigneeId}`);
 
