@@ -35,6 +35,7 @@ import {
   Check,
   Truck,
   Mail,
+  Globe,
 } from "lucide-react";
 
 interface FormData {
@@ -248,6 +249,13 @@ export default function ShipmentFormPage() {
                     <FileText className="w-4 h-4" />Imprimir comprobante
                   </Button>
                 )}
+                <a
+                  href="https://plataformachambatina.onrender.com"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-2 rounded-md border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition-colors text-sm"
+                >
+                  <Globe className="w-4 h-4" />
+                  Volver a la Pagina
+                </a>
               </div>
             </CardContent>
           </Card>
