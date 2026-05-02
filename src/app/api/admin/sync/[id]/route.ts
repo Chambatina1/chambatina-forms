@@ -76,7 +76,7 @@ export async function POST(
           syncedToApi: true,
           shipperIdApi: result.shipperId || "",
           consigneeIdApi: result.consigneeId || "",
-          cpkNumber: result.reserveId || "",
+          cpkNumber: result.cpkNumber || result.reserveId || "",
           apiResponse: result.message,
           status: "REGISTRADO",
         },

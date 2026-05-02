@@ -211,6 +211,7 @@ export interface ShipmentResult {
   shipperId?: string;
   consigneeId?: string;
   reserveId?: string;
+  cpkNumber?: string;
   message: string;
   error?: string;
 }
@@ -364,9 +365,48 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
     const reserveId = await insertRecord(session, "reservef", reserveParams);
     console.log(`[SolvedCargo] Reserve creado: ID=${reserveId}`);
 
-    // ==== PASO 4: Verificar que el reserve se creó correctamente ====
+    // ==== PASO 4: Generar número CPK ====
+    // Obtener el último HBL de la empresa para calcular el siguiente CPK
+    let cpkNumber = "";
+    try {
+      await new Promise(r => setTimeout(r, 1000));
+      const hblBody = new URLSearchParams({
+        funcname: "getListRecord",
+        option: "reservef",
+        where: `r.identerprise = ${session.identerprise} AND r.hbl IS NOT NULL AND r.hbl != ''`,
+        offset: "0",
+        numrows: "1",
+        orderby: "r.idreserve DESC",
+        onlytable: "1",
+      });
+
+      const hblResponse = await fetch(API_PATH, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Cookie: buildCookie(session),
+        },
+        body: hblBody.toString(),
+      });
+
+      const hblHtml = await hblResponse.text();
+      // Buscar el número HBL en el HTML de la respuesta
+      const hblMatch = hblHtml.match(/CPK-(\d{7})/);
+      if (hblMatch) {
+        const lastNum = parseInt(hblMatch[1], 10);
+        const nextNum = lastNum + 1;
+        cpkNumber = `CPK-${String(nextNum).padStart(7, "0")}`;
+        console.log(`[SolvedCargo] CPK generado: ${cpkNumber} (anterior: CPK-${String(lastNum).padStart(7, "0")})`);
+      } else {
+        console.log(`[SolvedCargo] ⚠️ No se encontró HBL anterior, CPK no generado automáticamente`);
+      }
+    } catch (cpkError) {
+      console.log(`[SolvedCargo] ⚠️ Error generando CPK: ${cpkError instanceof Error ? cpkError.message : "desconocido"}`);
+    }
+
+    // ==== PASO 5: Verificar que el reserve se creó correctamente ====
     console.log(`[SolvedCargo] Verificando reserve ID=${reserveId}...`);
-    await new Promise(r => setTimeout(r, 2000)); // esperar propagación
+    await new Promise(r => setTimeout(r, 1000));
 
     const verifyBody = new URLSearchParams({
       funcname: "getListRecord",
@@ -400,9 +440,10 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
       shipperId,
       consigneeId,
       reserveId,
+      cpkNumber,
       message: hasData
-        ? `Envío registrado en SolvedCargo (Reserve ID: ${reserveId}). Verificado y visible en su panel.`
-        : `Envío registrado en SolvedCargo (Reserve ID: ${reserveId}). Puede tardar unos minutos en aparecer en su panel.`,
+        ? `Envío registrado en SolvedCargo (Reserve ID: ${reserveId}).${cpkNumber ? ` CPK: ${cpkNumber}.` : ""} Verificado y visible en su panel.`
+        : `Envío registrado en SolvedCargo (Reserve ID: ${reserveId}).${cpkNumber ? ` CPK: ${cpkNumber}.` : ""} Puede tardar unos minutos en aparecer en su panel.`,
     };
   } catch (e) {
     console.error(`[SolvedCargo] Error: ${e instanceof Error ? e.message : "Desconocido"}`);
