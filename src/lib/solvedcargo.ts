@@ -296,17 +296,35 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
 
     // ==== PASO 3: Insertar RESERVE (envío) ====
     //
-    // CRITICAL: La tabla reserve tiene 41 campos en el schema del API.
-    // El PHP itera los 41 campos y para cada uno que es "tosave=true",
-    // toma el siguiente param. Los campos "tosave=false" (display via JOIN)
-    // se SALTAN pero still consumen posiciones en el array de params.
+    // CRITICAL: El PHP insertRecord itera las 41 posiciones del schema.
+    // Solo consume params para los 25 campos "saveable" (los demás son JOINs/display y los SALTA).
+    // Por eso se deben enviar EXACTAMENTE 25 params, en el orden de los saveable fields:
     //
-    // Posiciones de los 41 campos:
-    //   TOSAVE (25):     0, 1, 2, 4, 8, 9, 10, 11, 12, 13, 14, 15,
-    //                    20, 23, 27, 28, 29, 30, 31, 32, 33, 34, 38, 39, 40
-    //   DISPLAY (16):    3, 5, 6, 7, 16, 17, 18, 19, 21, 22, 24, 25, 26, 35, 36, 37
-    //
-    // Se deben enviar 41 params. Los display van con "" (vacío).
+    // param[0]  = idreserve (auto)
+    // param[1]  = identerprise
+    // param[2]  = iduser
+    // param[3]  = hbl (se deja vacío, se genera CPK después)
+    // param[4]  = idfbcnumber
+    // param[5]  = idfbcguide = "3" (ENVIOS FACTURADOS)
+    // param[6]  = idclasification = "44" (ENVIO)
+    // param[7]  = goods / mercancía (schema: namegood)
+    // param[8]  = bagnumber
+    // param[9]  = datereserve
+    // param[10] = idpurchaser (vacío)
+    // param[11] = idconsignee (FK al consignee insertado)
+    // param[12] = idshipper (FK al shipper insertado)
+    // param[13] = multhouse
+    // param[14] = valuebill
+    // param[15] = valuedoc
+    // param[16] = quantity
+    // param[17] = weight
+    // param[18] = volume
+    // param[19] = value
+    // param[20] = idtypecorrespond = "4" (FBC/CPK)
+    // param[21] = idguidekind = "3" (Master)
+    // param[22] = observation
+    // param[23] = whnumber
+    // param[24] = entrydate
     //
     const goods = sanitize(data.description || "ENVIO");
     const quantity = data.npieces || "1";
@@ -315,60 +333,31 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
     const today = new Date().toISOString().split("T")[0];
 
     const reserveParams = [
-      // === TOSAVE ===
       "",                    // [0]  idreserve (auto-increment)
       session.identerprise,  // [1]  identerprise
       session.iduser,        // [2]  iduser
-      // === DISPLAY (saltado por PHP, pero se necesita placeholder) ===
-      "",                    // [3]  image (display only - SKIP)
-      // === TOSAVE ===
-      "",                    // [4]  hbl (se genera después con getHblNumber)
-      // === DISPLAY ===
-      "",                    // [5]  shipped (display only - SKIP)
-      "",                    // [6]  idreservestate (display only - SKIP)
-      "",                    // [7]  idloadingguide (display only - SKIP)
-      // === TOSAVE ===
-      "",                    // [8]  idfbcnumber
-      "3",                   // [9]  idfbcguide = 3 ("ENVIOS FACTURADOS") ★ CLAVE
-      "44",                  // [10] idclasification = 44 ("ENVIO") ★ CLAVE
-      goods,                 // [11] goods / mercancía
-      "",                    // [12] bagnumber
-      today,                 // [13] datereserve (requerido, NOT NULL)
-      "",                    // [14] idpurchaser
-      consigneeId,           // [15] idconsignee (FK al consignee insertado)
-      // === DISPLAY (4 campos JOIN consignee) ===
-      "",                    // [16] c.passport (display only - SKIP)
-      "",                    // [17] c.identity (display only - SKIP)
-      "",                    // [18] c.street (display only - SKIP)
-      "",                    // [19] c.telephone (display only - SKIP)
-      // === TOSAVE ===
-      shipperId,             // [20] idshipper (FK al shipper insertado)
-      // === DISPLAY (2 campos JOIN shipper) ===
-      "",                    // [21] s.passport (display only - SKIP)
-      "",                    // [22] s.address (display only - SKIP)
-      // === TOSAVE ===
-      "",                    // [23] multhouse
-      // === DISPLAY (3 campos JOIN purchaser) ===
-      "",                    // [24] p.identity (display only - SKIP)
-      "",                    // [25] p.passport (display only - SKIP)
-      "",                    // [26] p.telephone (display only - SKIP)
-      // === TOSAVE ===
-      "",                    // [27] valuebill (NOT NULL, default 0)
-      "",                    // [28] valuedoc (NOT NULL, default 0)
-      quantity,              // [29] quantity
-      weight,                // [30] weight
-      "",                    // [31] volume
-      "",                    // [32] value
-      "4",                   // [33] idtypecorrespond = 4 (FBC/CPK) ★ REQUERIDO
-      "3",                   // [34] idguidekind = 3 ("Master") ★ CLAVE
-      // === DISPLAY (3 campos) ===
-      "",                    // [35] idguidestate (display only - SKIP)
-      "",                    // [36] valuedanger (display only - SKIP)
-      "",                    // [37] valuepaied (display only - SKIP)
-      // === TOSAVE ===
-      observation,           // [38] observation
-      "",                    // [39] whnumber
-      today,                 // [40] entrydate
+      "",                    // [3]  hbl (vacío — CPK se genera por el sistema)
+      "",                    // [4]  idfbcnumber (vacío)
+      "3",                   // [5]  idfbcguide = 3 ("ENVIOS FACTURADOS") ★ CLAVE
+      "44",                  // [6]  idclasification = 44 ("ENVIO") ★ CLAVE
+      goods,                 // [7]  goods / mercancía
+      "",                    // [8]  bagnumber
+      today,                 // [9]  datereserve (requerido, NOT NULL)
+      "",                    // [10] idpurchaser (vacío)
+      consigneeId,           // [11] idconsignee (FK al consignee insertado)
+      shipperId,             // [12] idshipper (FK al shipper insertado)
+      "",                    // [13] multhouse
+      "0",                   // [14] valuebill (NOT NULL, default 0)
+      "0",                   // [15] valuedoc (NOT NULL, default 0)
+      quantity,              // [16] quantity
+      weight,                // [17] weight
+      "",                    // [18] volume
+      "",                    // [19] value
+      "4",                   // [20] idtypecorrespond = 4 (FBC/CPK) ★ REQUERIDO
+      "3",                   // [21] idguidekind = 3 ("Master") ★ CLAVE
+      observation,           // [22] observation
+      "",                    // [23] whnumber
+      today,                 // [24] entrydate
     ].join(";");
 
     console.log(`[SolvedCargo] Creando reserve: goods=${goods} consigneeId=${consigneeId} shipperId=${shipperId}`);
