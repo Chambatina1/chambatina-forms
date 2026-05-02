@@ -207,7 +207,8 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
     const identity = sanitize(data.cidentity);
     const phone = sanitize(data.cphone);
     const street = sanitize(data.caddress);
-    const province = sanitize(data.cprovince || "");
+    // [17] idprovince es FK entero a tabla provinces (no hay provincias configuradas, enviar vacío)
+    const province = ""; // idprovince es FK numérico, no texto
 
     const consigneeParams = [
       "",           // [0] idconsignee (auto)
