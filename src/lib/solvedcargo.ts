@@ -287,7 +287,7 @@ export async function repairReserve(reserveId: string): Promise<{ success: boole
       "",              // [6]  shipped ★ DISPLAY (skipped)
       "",              // [7]  idloadingguide ★ DISPLAY (skipped)
       "11",            // [8]  idfbcnumber = 11 (ENVIOS FACTURADOS) ★ FK OBLIGATORIO
-      "ENVIOS FACTURADOS/()/(ENVIOS FACTURADOS)", // [9] idfbcguide ★ FK OBLIGATORIO
+      "3",             // [9] idfbcguide = 3 (default enterprise 55) ★ FK numerico
       "",              // [10] idclasification (no cambiar)
       "",              // [11] goods (no cambiar)
       "",              // [12] bagnumber (no cambiar)
@@ -312,7 +312,7 @@ export async function repairReserve(reserveId: string): Promise<{ success: boole
       "",              // [31] volume (no cambiar)
       "",              // [32] value (no cambiar)
       "",              // [33] idtypecorrespond (no cambiar)
-      "Master",        // [34] idguidekind = Master ★ FK OBLIGATORIO
+      "2",             // [34] idguidekind = 2 (Master) ★ FK numerico
       "",              // [35] idguidestate ★ DISPLAY (skipped)
       "",              // [36] valuedanger ★ DISPLAY (skipped)
       "",              // [37] valuepaied ★ DISPLAY (skipped)
@@ -570,7 +570,7 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
       "",              // [6]  shipped ★ DISPLAY (skipped)
       "",              // [7]  idloadingguide ★ DISPLAY (skipped)
       "11",            // [8]  idfbcnumber = 11 (ENVIOS FACTURADOS) ★ FK OBLIGATORIO
-      "ENVIOS FACTURADOS/()/(ENVIOS FACTURADOS)", // [9] idfbcguide ★ FK OBLIGATORIO
+      "3",             // [9] idfbcguide = 3 (default enterprise 55) ★ FK numerico obligatorio
       "44",            // [10] idclasification = 44 ("ENVIO")
       goods,           // [11] namegood -> col: goods
       "",              // [12] bagnumber (palet)
@@ -595,7 +595,7 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
       "",              // [31] volume
       "",              // [32] value
       "4",             // [33] idtypecorrespond = 4 (FBC/CPK)
-      "Master",        // [34] idguidekind = Master ★ FK OBLIGATORIO
+      "2",             // [34] idguidekind = 2 (Master) ★ FK numerico
       "",              // [35] idguidestate ★ DISPLAY (skipped)
       "",              // [36] valuedanger ★ DISPLAY (skipped)
       "",              // [37] valuepaied ★ DISPLAY (skipped)
