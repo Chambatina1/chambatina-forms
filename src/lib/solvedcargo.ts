@@ -1,60 +1,66 @@
 // SolvedCargo API Client para Chambatina
-// Documentación: https://www.solvedc.com/cargo/cargopack/v1
+// Documentacion: https://www.solvedc.com/cargo/cargopack/v1
 //
 // ============================================================================
 // CRITICAL: Mapeo de 41 posiciones del schema para reservef
 // ============================================================================
 // El PHP insertRecord/updateRecord itera las 41 posiciones del schema JSON.
-// param[i] va a schema posición [i] (NO es secuencial).
+// param[i] va a schema posicion [i] (NO es secuencial).
 // Las posiciones de display (JOIN) se SALTAN en el SQL generado.
 //
+// SQL generado por PHP (25 columnas saveable):
+// INSERT INTO reserve (idreserve,identerprise,iduser,hbl,idfbcnumber,
+//   idfbcguide,idclasification,goods,bagnumber,datereserve,idpurchaser,
+//   idconsignee,idshipper,multhouse,valuebill,valuedoc,quantity,weight,
+//   volume,value,idtypecorrespond,idguidekind,observation,whnumber,entrydate)
+//
 // Schema positions (41 total, 25 saveable, 16 display/skipped):
-// [0]  idreserve       → SAVEABLE (auto)       → param[0]
-// [1]  identerprise    → SAVEABLE              → param[1]
-// [2]  iduser          → SAVEABLE              → param[2]
-// [3]  image           → DISPLAY (SKIPPED)     → param[3] (ignorado)
-// [4]  hbl             → SAVEABLE              → param[4]
-// [5]  idreservestate  → DISPLAY (SKIPPED)     → param[5] (ignorado)
-// [6]  shipped         → DISPLAY (SKIPPED)     → param[6] (ignorado)
-// [7]  idloadingguide  → DISPLAY (SKIPPED)     → param[7] (ignorado)
-// [8]  idfbcnumber     → SAVEABLE              → param[8]
-// [9]  idfbcguide      → SAVEABLE              → param[9]
-// [10] idclasification → SAVEABLE              → param[10]
-// [11] namegood        → SAVEABLE (col: goods) → param[11]
-// [12] bagnumber       → SAVEABLE              → param[12]
-// [13] datereserve     → SAVEABLE              → param[13]
-// [14] namepurchaser   → SAVEABLE (col: idpurchaser) → param[14]
-// [15] nameconsignee   → SAVEABLE (col: idconsignee) → param[15] ★
-// [16] passport        → DISPLAY (SKIPPED)     → param[16] (ignorado)
-// [17] cidentity       → DISPLAY (SKIPPED)     → param[17] (ignorado)
-// [18] street          → DISPLAY (SKIPPED)     → param[18] (ignorado)
-// [19] ctelephone      → DISPLAY (SKIPPED)     → param[19] (ignorado)
-// [20] nameshipper     → SAVEABLE (col: idshipper) → param[20] ★
-// [21] spassport       → DISPLAY (SKIPPED)     → param[21] (ignorado)
-// [22] address         → DISPLAY (SKIPPED)     → param[22] (ignorado)
-// [23] multhouse       → SAVEABLE              → param[23]
-// [24] pidentity       → DISPLAY (SKIPPED)     → param[24] (ignorado)
-// [25] ppassport       → DISPLAY (SKIPPED)     → param[25] (ignorado)
-// [26] ptelephone      → DISPLAY (SKIPPED)     → param[26] (ignorado)
-// [27] valuebill       → SAVEABLE              → param[27]
-// [28] valuedoc        → SAVEABLE              → param[28]
-// [29] quantity        → SAVEABLE              → param[29]
-// [30] weight          → SAVEABLE              → param[30]
-// [31] volume          → SAVEABLE              → param[31]
-// [32] value           → SAVEABLE              → param[32]
-// [33] idtypecorrespond→ SAVEABLE              → param[33]
-// [34] idguidekind     → SAVEABLE              → param[34]
-// [35] idguidestate    → DISPLAY (SKIPPED)     → param[35] (ignorado)
-// [36] valuedanger     → DISPLAY (SKIPPED)     → param[36] (ignorado)
-// [37] valuepaied      → DISPLAY (SKIPPED)     → param[37] (ignorado)
-// [38] observation     → SAVEABLE              → param[38]
-// [39] whnumber        → SAVEABLE              → param[39]
-// [40] entrydate       → SAVEABLE              → param[40]
+// [0]  idreserve       -> SAVEABLE (auto)       -> param[0]
+// [1]  identerprise    -> SAVEABLE              -> param[1]
+// [2]  iduser          -> SAVEABLE              -> param[2]
+// [3]  image           -> DISPLAY (SKIPPED)     -> param[3] (ignorado)
+// [4]  hbl             -> SAVEABLE              -> param[4]  ★ CPK va aqui
+// [5]  idreservestate  -> DISPLAY (SKIPPED)     -> param[5] (ignorado)
+// [6]  shipped         -> DISPLAY (SKIPPED)     -> param[6] (ignorado)
+// [7]  idloadingguide  -> DISPLAY (SKIPPED)     -> param[7] (ignorado)
+// [8]  idfbcnumber     -> SAVEABLE              -> param[8]
+// [9]  idfbcguide      -> SAVEABLE              -> param[9]
+// [10] idclasification -> SAVEABLE              -> param[10]
+// [11] namegood        -> SAVEABLE (col: goods) -> param[11]
+// [12] bagnumber       -> SAVEABLE              -> param[12]
+// [13] datereserve     -> SAVEABLE              -> param[13]
+// [14] namepurchaser   -> SAVEABLE (col: idpurchaser) -> param[14]
+// [15] nameconsignee   -> SAVEABLE (col: idconsignee) -> param[15]  ★ FK
+// [16] passport        -> DISPLAY (SKIPPED)     -> param[16] (ignorado)
+// [17] cidentity       -> DISPLAY (SKIPPED)     -> param[17] (ignorado)
+// [18] street          -> DISPLAY (SKIPPED)     -> param[18] (ignorado)
+// [19] ctelephone      -> DISPLAY (SKIPPED)     -> param[19] (ignorado)
+// [20] nameshipper     -> SAVEABLE (col: idshipper) -> param[20]  ★ FK
+// [21] spassport       -> DISPLAY (SKIPPED)     -> param[21] (ignorado)
+// [22] address         -> DISPLAY (SKIPPED)     -> param[22] (ignorado)
+// [23] multhouse       -> SAVEABLE              -> param[23]
+// [24] pidentity       -> DISPLAY (SKIPPED)     -> param[24] (ignorado)
+// [25] ppassport       -> DISPLAY (SKIPPED)     -> param[25] (ignorado)
+// [26] ptelephone      -> DISPLAY (SKIPPED)     -> param[26] (ignorado)
+// [27] valuebill       -> SAVEABLE              -> param[27]
+// [28] valuedoc        -> SAVEABLE              -> param[28]
+// [29] quantity        -> SAVEABLE              -> param[29]
+// [30] weight          -> SAVEABLE              -> param[30]
+// [31] volume          -> SAVEABLE              -> param[31]
+// [32] value           -> SAVEABLE              -> param[32]
+// [33] idtypecorrespond-> SAVEABLE              -> param[33]
+// [34] idguidekind     -> SAVEABLE              -> param[34]
+// [35] idguidestate    -> DISPLAY (SKIPPED)     -> param[35] (ignorado)
+// [36] valuedanger     -> DISPLAY (SKIPPED)     -> param[36] (ignorado)
+// [37] valuepaied      -> DISPLAY (SKIPPED)     -> param[37] (ignorado)
+// [38] observation     -> SAVEABLE              -> param[38]
+// [39] whnumber        -> SAVEABLE              -> param[39]
+// [40] entrydate       -> SAVEABLE              -> param[40]
 
 const BASE_URL = "https://www.solvedc.com/cargo/cargopack/v1";
 const API_PATH = `${BASE_URL}/php/solved/routing.php`;
 
-// IDs numéricos de provincia y municipio en SolvedCargo (FK)
+// IDs numericos de provincia y municipio en SolvedCargo (FK)
 const PROVINCE_IDS: Record<string, number> = {
   "PINAR DEL RIO": 1, "ARTEMISA": 2, "MAYABEQUE": 3, "LA HABANA": 4,
   "MATANZAS": 5, "VILLA CLARA": 6, "CIENFUEGOS": 7, "SANCTI SPIRITUS": 8,
@@ -95,7 +101,7 @@ interface SolvedCargoSession {
   identerprise: string;
 }
 
-// Cache de sesión en memoria (dura ~25 min)
+// Cache de sesion en memoria (dura ~25 min)
 let cachedSession: {
   session: SolvedCargoSession;
   expiresAt: number;
@@ -121,7 +127,7 @@ export async function login(): Promise<SolvedCargoSession> {
     redirect: "manual",
   });
 
-  if (!response.ok) throw new Error(`Login falló: ${response.status}`);
+  if (!response.ok) throw new Error(`Login fallo: ${response.status}`);
 
   const setCookie = response.headers.get("set-cookie") || "";
   const match = setCookie.match(/PHPSESSID=([^;]+)/);
@@ -129,7 +135,7 @@ export async function login(): Promise<SolvedCargoSession> {
 
   const data = await response.json();
   console.log(`[SolvedCargo] Login OK: iduser=${data.iduser} enterprise=${data.identerprise}`);
-  if (!data.iduser) throw new Error("Login no devolvió datos");
+  if (!data.iduser) throw new Error("Login no devolvio datos");
 
   const session: SolvedCargoSession = {
     phpsessid: match[1],
@@ -142,7 +148,7 @@ export async function login(): Promise<SolvedCargoSession> {
 }
 
 // ============================================
-// 2. VALIDAR SESIÓN
+// 2. VALIDAR SESION
 // ============================================
 export async function checkSession(session: SolvedCargoSession): Promise<boolean> {
   const body = new URLSearchParams({
@@ -173,11 +179,11 @@ function buildCookie(session: SolvedCargoSession): string {
 // Elimina caracteres que el API SolvedCargo no maneja bien en SQL
 function sanitize(value: string): string {
   return value
-    .replace(/[;#&|]/g, "")   // chars problemáticos para SQL
+    .replace(/[;#&|]/g, "")   // chars problematicos para SQL
     .replace(/@/g, "");       // @ causa syntax error en MariaDB via API
 }
 
-// Valida que la respuesta es un ID numérico (no un mensaje de error)
+// Valida que la respuesta es un ID numerico (no un mensaje de error)
 function isValidId(response: string): { valid: boolean; id: string; error?: string } {
   const trimmed = response.trim();
   if (/^\d+$/.test(trimmed)) {
@@ -187,7 +193,7 @@ function isValidId(response: string): { valid: boolean; id: string; error?: stri
 }
 
 // ============================================
-// 3. INSERT RECORD (genérico)
+// 3. INSERT RECORD (generico)
 // ============================================
 async function insertRecord(
   session: SolvedCargoSession,
@@ -211,60 +217,121 @@ async function insertRecord(
     body,
   });
 
-  if (!response.ok) throw new Error(`insertRecord falló: ${response.status}`);
+  if (!response.ok) throw new Error(`insertRecord fallo: ${response.status}`);
   const text = (await response.text()).trim();
   console.log(`[SolvedCargo] insertRecord response=${text}`);
 
-  // Validar que sea un ID numérico, no un error SQL
+  // Validar que sea un ID numerico, no un error SQL
   const check = isValidId(text);
   if (!check.valid) {
-    throw new Error(`insertRecord devolvió error: ${check.error}`);
+    throw new Error(`insertRecord devolvio error: ${check.error}`);
   }
 
   return check.id;
 }
 
 // ============================================
-// 4. UPDATE RECORD (genérico) — también usa 41 posiciones
+// 4. BUSCAR ULTIMO CPK
 // ============================================
-async function updateRecord(
-  session: SolvedCargoSession,
-  option: string,
-  id: string,
-  params: string
-): Promise<string> {
-  const body = new URLSearchParams({
-    funcname: "updateRecord",
-    option,
-    id,
-    params,
-  }).toString();
+async function getNextCPK(session: SolvedCargoSession): Promise<string> {
+  const hblBody = new URLSearchParams({
+    funcname: "getListRecord",
+    option: "reservef",
+    where: `r.identerprise = ${session.identerprise} AND r.hbl LIKE 'CPK-%'`,
+    offset: "0",
+    numrows: "5",
+    orderby: "r.idreserve DESC",
+    onlytable: "1",
+  });
 
-  console.log(`[SolvedCargo] updateRecord option=${option} id=${id}`);
-
-  const response = await fetch(API_PATH, {
+  const hblResponse = await fetch(API_PATH, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Cookie: buildCookie(session),
     },
-    body,
+    body: hblBody.toString(),
   });
 
-  if (!response.ok) throw new Error(`updateRecord falló: ${response.status}`);
-  const text = (await response.text()).trim();
-  console.log(`[SolvedCargo] updateRecord response=${text.substring(0, 300)}`);
+  const hblHtml = await hblResponse.text();
 
-  // Verificar que no sea un error SQL
-  if (text.toLowerCase().includes("error")) {
-    throw new Error(`updateRecord error: ${text.substring(0, 300)}`);
+  // Buscar todos los numeros CPK en el HTML
+  const cpkMatches = hblHtml.match(/CPK-(\d{7})/g);
+  if (cpkMatches && cpkMatches.length > 0) {
+    // Extraer numeros y encontrar el mayor
+    const nums = cpkMatches.map(m => parseInt(m.replace("CPK-", ""), 10));
+    const maxNum = Math.max(...nums);
+    const nextNum = maxNum + 1;
+    const cpk = `CPK-${String(nextNum).padStart(7, "0")}`;
+    console.log(`[SolvedCargo] Ultimos CPK encontrados: ${cpkMatches.slice(0, 3).join(", ")} -> siguiente: ${cpk}`);
+    return cpk;
   }
 
-  return text;
+  // Fallback: buscar en TODOS los registros (no solo enterprise)
+  console.log(`[SolvedCargo] No se encontraron CPK para esta enterprise, buscando global...`);
+  const globalBody = new URLSearchParams({
+    funcname: "getListRecord",
+    option: "reservef",
+    where: `r.hbl LIKE 'CPK-%'`,
+    offset: "0",
+    numrows: "5",
+    orderby: "r.idreserve DESC",
+    onlytable: "1",
+  });
+
+  const globalResponse = await fetch(API_PATH, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: buildCookie(session),
+    },
+    body: globalBody.toString(),
+  });
+
+  const globalHtml = await globalResponse.text();
+  const globalMatches = globalHtml.match(/CPK-(\d{7})/g);
+  if (globalMatches && globalMatches.length > 0) {
+    const nums = globalMatches.map(m => parseInt(m.replace("CPK-", ""), 10));
+    const maxNum = Math.max(...nums);
+    const nextNum = maxNum + 1;
+    const cpk = `CPK-${String(nextNum).padStart(7, "0")}`;
+    console.log(`[SolvedCargo] CPK global encontrado: ${cpk}`);
+    return cpk;
+  }
+
+  // Ultimo fallback
+  console.log(`[SolvedCargo] No se encontraron CPK, generando CPK-0273613`);
+  return "CPK-0273613";
 }
 
 // ============================================
-// 5. FLUJO COMPLETO: Crear envío CPK
+// 5. VERIFICAR REGISTRO EXISTE
+// ============================================
+async function verifyReserve(session: SolvedCargoSession, reserveId: string): Promise<boolean> {
+  const verifyBody = new URLSearchParams({
+    funcname: "getListRecord",
+    option: "reservef",
+    where: `r.idreserve = ${reserveId}`,
+    offset: "0",
+    numrows: "1",
+    onlytable: "1",
+  });
+
+  const verifyResponse = await fetch(API_PATH, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: buildCookie(session),
+    },
+    body: verifyBody.toString(),
+  });
+
+  const verifyHtml = await verifyResponse.text();
+  return verifyHtml.includes("id_tr_reservef_");
+}
+
+// ============================================
+// 6. FLUJO COMPLETO: Crear envio CPK
 // ============================================
 export interface ShipmentFormData {
   // Remitente (Shipper)
@@ -281,7 +348,7 @@ export interface ShipmentFormData {
   caddress: string;
   cprovince: string;
   cmunicipality: string;
-  // Envío
+  // Envio
   weight: string;
   npieces: string;
   description: string;
@@ -310,7 +377,7 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
   } catch (e) {
     return {
       success: false,
-      message: "Error de conexión con SolvedCargo",
+      message: "Error de conexion con SolvedCargo",
       error: e instanceof Error ? e.message : "Desconocido",
     };
   }
@@ -370,36 +437,41 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
     const consigneeId = await insertRecord(session, "consignee", consigneeParams);
     console.log(`[SolvedCargo] Consignee creado: ID=${consigneeId}`);
 
-    // ==== PASO 3: Insertar RESERVE con 41 params (mapeo correcto del schema) ====
+    // ==== PASO 3: Calcular CPK ANTES del insert ====
+    const cpkNumber = await getNextCPK(session);
+    console.log(`[SolvedCargo] CPK a usar: ${cpkNumber}`);
+
+    // ==== PASO 4: Insertar RESERVE con 41 params + CPK incluido ====
     const goods = sanitize(data.description || "ENVIO");
     const quantity = data.npieces || "1";
     const weight = data.weight || "1";
     const observation = sanitize(data.cnotes || "");
     const today = new Date().toISOString().split("T")[0];
 
-    // 41 params indexados por posición del schema (ver documentación arriba)
+    // 41 params indexados por posicion del schema
+    // El PHP genera SQL solo para los 25 campos SAVEABLE
     const reserveParams = [
       "",              // [0]  idreserve (auto)
       session.identerprise, // [1]  identerprise
       session.iduser,  // [2]  iduser
       "",              // [3]  image ★ DISPLAY (skipped por PHP)
-      "",              // [4]  hbl (vacío — CPK se escribe vía updateRecord)
+      cpkNumber,       // [4]  hbl ★★★ CPK SE ESCRIBE DIRECTAMENTE AQUI ★★★
       "",              // [5]  idreservestate ★ DISPLAY (skipped)
       "",              // [6]  shipped ★ DISPLAY (skipped)
       "",              // [7]  idloadingguide ★ DISPLAY (skipped)
-      "",              // [8]  idfbcnumber (vacío — no hay fbcnumber activo)
-      "",              // [9]  idfbcguide (vacío — no hay guía activa)
+      "",              // [8]  idfbcnumber (vacio)
+      "",              // [9]  idfbcguide (vacio)
       "44",            // [10] idclasification = 44 ("ENVIO")
-      goods,           // [11] namegood → col: goods
+      goods,           // [11] namegood -> col: goods
       "",              // [12] bagnumber (palet)
       today,           // [13] datereserve
-      "",              // [14] namepurchaser → col: idpurchaser (vacío = sin purchaser)
-      consigneeId,     // [15] nameconsignee → col: idconsignee ★ FK
+      "",              // [14] namepurchaser -> col: idpurchaser (vacio)
+      consigneeId,     // [15] nameconsignee -> col: idconsignee ★ FK
       "",              // [16] passport ★ DISPLAY (skipped)
       "",              // [17] cidentity ★ DISPLAY (skipped)
       "",              // [18] street ★ DISPLAY (skipped)
       "",              // [19] ctelephone ★ DISPLAY (skipped)
-      shipperId,       // [20] nameshipper → col: idshipper ★ FK
+      shipperId,       // [20] nameshipper -> col: idshipper ★ FK
       "",              // [21] spassport ★ DISPLAY (skipped)
       "",              // [22] address ★ DISPLAY (skipped)
       "",              // [23] multhouse
@@ -413,7 +485,7 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
       "",              // [31] volume
       "",              // [32] value
       "4",             // [33] idtypecorrespond = 4 (FBC/CPK)
-      "",              // [34] idguidekind (vacío)
+      "",              // [34] idguidekind (vacio)
       "",              // [35] idguidestate ★ DISPLAY (skipped)
       "",              // [36] valuedanger ★ DISPLAY (skipped)
       "",              // [37] valuepaied ★ DISPLAY (skipped)
@@ -422,139 +494,25 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
       today,           // [40] entrydate
     ].join(";");
 
-    console.log(`[SolvedCargo] Creando reserve (41 params): goods=${goods} consigneeId=${consigneeId} shipperId=${shipperId}`);
+    console.log(`[SolvedCargo] Creando reserve (41 params): goods=${goods} cpk=${cpkNumber} consigneeId=${consigneeId} shipperId=${shipperId}`);
     const reserveId = await insertRecord(session, "reservef", reserveParams);
-    console.log(`[SolvedCargo] Reserve creado: ID=${reserveId}`);
+    console.log(`[SolvedCargo] Reserve creado: ID=${reserveId} con CPK=${cpkNumber}`);
 
-    // ==== PASO 4: Generar y escribir número CPK ====
-    // Calcular siguiente CPK basado en el último existente
-    await new Promise(r => setTimeout(r, 1500));
-
-    let cpkNumber = "";
-    try {
-      const hblBody = new URLSearchParams({
-        funcname: "getListRecord",
-        option: "reservef",
-        where: `r.identerprise = ${session.identerprise} AND r.hbl IS NOT NULL AND r.hbl != ''`,
-        offset: "0",
-        numrows: "1",
-        orderby: "r.idreserve DESC",
-        onlytable: "1",
-      });
-
-      const hblResponse = await fetch(API_PATH, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Cookie: buildCookie(session),
-        },
-        body: hblBody.toString(),
-      });
-
-      const hblHtml = await hblResponse.text();
-      const hblMatch = hblHtml.match(/CPK-(\d{7})/);
-      if (hblMatch) {
-        const lastNum = parseInt(hblMatch[1], 10);
-        const nextNum = lastNum + 1;
-        cpkNumber = `CPK-${String(nextNum).padStart(7, "0")}`;
-        console.log(`[SolvedCargo] CPK calculado: ${cpkNumber}`);
-      } else {
-        // Si no hay CPK anterior, usar secuencia basada en el reserve ID
-        cpkNumber = `CPK-${String(parseInt(reserveId) + 100000).padStart(7, "0")}`;
-        console.log(`[SolvedCargo] No hay CPK anterior, usando: ${cpkNumber}`);
-      }
-    } catch (cpkError) {
-      console.log(`[SolvedCargo] Error buscando último CPK, generando basado en ID: ${cpkError}`);
-      cpkNumber = `CPK-${String(parseInt(reserveId) + 100000).padStart(7, "0")}`;
-    }
-
-    // Escribir CPK en el campo hbl usando updateRecord (también 41 params)
-    try {
-      const updateParams = [
-        reserveId,       // [0]  idreserve → WHERE idreserve=N ★ CLAVE
-        session.identerprise, // [1]  identerprise
-        session.iduser,  // [2]  iduser
-        "",              // [3]  image ★ DISPLAY (skipped)
-        cpkNumber,       // [4]  hbl ★ ESCRIBIR CPK AQUÍ
-        "",              // [5]  idreservestate ★ DISPLAY (skipped)
-        "",              // [6]  shipped ★ DISPLAY (skipped)
-        "",              // [7]  idloadingguide ★ DISPLAY (skipped)
-        "0",             // [8]  idfbcnumber ("0" para FK enteros vacíos)
-        "0",             // [9]  idfbcguide
-        "44",            // [10] idclasification
-        goods,           // [11] goods
-        "",              // [12] bagnumber
-        today,           // [13] datereserve
-        "0",             // [14] idpurchaser ("0" para FK enteros)
-        consigneeId,     // [15] idconsignee
-        "",              // [16] passport ★ DISPLAY (skipped)
-        "",              // [17] cidentity ★ DISPLAY (skipped)
-        "",              // [18] street ★ DISPLAY (skipped)
-        "",              // [19] ctelephone ★ DISPLAY (skipped)
-        shipperId,       // [20] idshipper
-        "",              // [21] spassport ★ DISPLAY (skipped)
-        "",              // [22] address ★ DISPLAY (skipped)
-        "0",             // [23] multhouse ("0" para enteros)
-        "",              // [24] pidentity ★ DISPLAY (skipped)
-        "",              // [25] ppassport ★ DISPLAY (skipped)
-        "",              // [26] ptelephone ★ DISPLAY (skipped)
-        "0",             // [27] valuebill
-        "0",             // [28] valuedoc
-        quantity,        // [29] quantity
-        weight,          // [30] weight
-        "0",             // [31] volume ("0" para enteros)
-        "0",             // [32] value ("0" para enteros)
-        "4",             // [33] idtypecorrespond
-        "0",             // [34] idguidekind ("0" para enteros)
-        "",              // [35] idguidestate ★ DISPLAY (skipped)
-        "",              // [36] valuedanger ★ DISPLAY (skipped)
-        "",              // [37] valuepaied ★ DISPLAY (skipped)
-        observation,     // [38] observation
-        "0",             // [39] whnumber ("0" para enteros)
-        today,           // [40] entrydate
-      ].join(";");
-
-      await updateRecord(session, "reservef", reserveId, updateParams);
-      console.log(`[SolvedCargo] CPK ${cpkNumber} escrito en reserve ${reserveId}`);
-    } catch (updateError) {
-      console.log(`[SolvedCargo] ⚠️ No se pudo escribir CPK: ${updateError instanceof Error ? updateError.message : "desconocido"}`);
-      // No es fatal — el reserve existe, solo falta el CPK
-    }
-
-    // ==== PASO 5: Verificar ====
+    // ==== PASO 5: Verificar que el registro existe y es visible ====
     console.log(`[SolvedCargo] Verificando reserve ID=${reserveId}...`);
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 2000)); // Esperar 2s para que la BD actualice
 
     let hasData = false;
     try {
-      const verifyBody = new URLSearchParams({
-        funcname: "getListRecord",
-        option: "reservef",
-        where: `r.idreserve = ${reserveId}`,
-        offset: "0",
-        numrows: "1",
-        onlytable: "1",
-      });
-
-      const verifyResponse = await fetch(API_PATH, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Cookie: buildCookie(session),
-        },
-        body: verifyBody.toString(),
-      });
-
-      const verifyHtml = await verifyResponse.text();
-      hasData = verifyHtml.includes("id_tr_reservef_");
+      hasData = await verifyReserve(session, reserveId);
     } catch {
       // Verification failed, not critical
     }
 
     if (hasData) {
-      console.log(`[SolvedCargo] ✅ Reserve ID=${reserveId} verificado con CPK ${cpkNumber}`);
+      console.log(`[SolvedCargo] Reserve ID=${reserveId} VERIFICADO con CPK ${cpkNumber}`);
     } else {
-      console.log(`[SolvedCargo] ⚠️ Reserve ID=${reserveId} creado pero no visible aún (puede tardar)`);
+      console.log(`[SolvedCargo] Reserve ID=${reserveId} creado pero verificacion fallo (puede tardar en aparecer)`);
     }
 
     return {
@@ -564,21 +522,21 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
       reserveId,
       cpkNumber,
       message: hasData
-        ? `Envío registrado en SolvedCargo. Reserve ID: ${reserveId}, CPK: ${cpkNumber}. Verificado y visible en su panel.`
-        : `Envío registrado en SolvedCargo. Reserve ID: ${reserveId}, CPK: ${cpkNumber}. Puede tardar unos minutos en aparecer en su panel.`,
+        ? `Envio registrado en SolvedCargo. Reserve ID: ${reserveId}, CPK: ${cpkNumber}. Verificado y visible en su panel.`
+        : `Envio registrado en SolvedCargo. Reserve ID: ${reserveId}, CPK: ${cpkNumber}. Puede tardar unos minutos en aparecer en su panel.`,
     };
   } catch (e) {
     console.error(`[SolvedCargo] Error: ${e instanceof Error ? e.message : "Desconocido"}`);
     return {
       success: false,
-      message: "Error al crear el envío en SolvedCargo",
+      message: "Error al crear el envio en SolvedCargo",
       error: e instanceof Error ? e.message : "Desconocido",
     };
   }
 }
 
 // ============================================
-// 6. BUSCAR ENVÍOS (parsear HTML)
+// 7. BUSCAR ENVIOS (parsear HTML)
 // ============================================
 import * as cheerio from "cheerio";
 
