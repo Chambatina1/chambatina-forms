@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { createFullShipment } from "@/lib/solvedcargo";
+import { createFullShipment, repairReserve } from "@/lib/solvedcargo";
 
 // POST /api/admin/sync/[id] — Cargar envio a SolvedCargo
 export async function POST(
@@ -113,6 +113,71 @@ export async function POST(
         message: "Error interno del servidor",
         error: error instanceof Error ? error.message : "Desconocido",
       },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH /api/admin/sync/[id] — Reparar reserve existente en SolvedCargo
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const shipment = await db.shipment.findUnique({ where: { id } });
+    if (!shipment) {
+      return NextResponse.json({ success: false, message: "Envio no encontrado" }, { status: 404 });
+    }
+
+    // Buscar reserveId del envio (puede estar en cpkNumber o en apiResponse)
+    const s = shipment as Record<string, unknown>;
+    let reserveId = s.cpkNumber as string | undefined;
+
+    // Si cpkNumber tiene formato "CPK-XXXXXXX", buscar reserveId en apiResponse
+    if (reserveId && reserveId.startsWith("CPK-")) {
+      const match = ((s.apiResponse as string) || "").match(/Reserve ID:\s*(\d+)/);
+      if (match) reserveId = match[1];
+    }
+
+    // Tambien intentar extraer del campo reserveIdApi si existe
+    if (!reserveId || reserveId.startsWith("CPK-")) {
+      const apiResp = (s.apiResponse as string) || "";
+      const match = apiResp.match(/Reserve ID:\s*(\d+)/);
+      if (match) reserveId = match[1];
+    }
+
+    if (!reserveId || reserveId.startsWith("CPK-") || !/^\d+$/.test(reserveId)) {
+      return NextResponse.json({
+        success: false,
+        message: "No se encontro un Reserve ID numerico para este envio",
+      });
+    }
+
+    console.log(`[Admin Repair] Reparando reserve ID=${reserveId} del envio ${id}`);
+    const result = await repairReserve(reserveId);
+
+    if (result.success) {
+      await db.shipment.update({
+        where: { id },
+        data: {
+          apiResponse: result.message,
+          status: "REGISTRADO",
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: result.message,
+        reserveId,
+      });
+    }
+
+    return NextResponse.json({ success: false, message: result.message });
+  } catch (error) {
+    console.error("[Admin Repair] Error:", error);
+    return NextResponse.json(
+      { success: false, message: "Error al reparar", error: error instanceof Error ? error.message : "Desconocido" },
       { status: 500 }
     );
   }

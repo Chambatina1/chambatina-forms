@@ -231,7 +231,117 @@ async function insertRecord(
 }
 
 // ============================================
-// 4. BUSCAR ULTIMO CPK
+// 3b. UPDATE RECORD (generico)
+// ============================================
+async function updateRecord(
+  session: SolvedCargoSession,
+  option: string,
+  params: string
+): Promise<boolean> {
+  const body = new URLSearchParams({
+    funcname: "updateRecord",
+    option,
+    params,
+  }).toString();
+
+  console.log(`[SolvedCargo] updateRecord option=${option} params=${params.substring(0, 400)}`);
+
+  const response = await fetch(API_PATH, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: buildCookie(session),
+    },
+    body,
+  });
+
+  if (!response.ok) throw new Error(`updateRecord fallo: ${response.status}`);
+  const text = (await response.text()).trim();
+  console.log(`[SolvedCargo] updateRecord response=${text}`);
+
+  // updateRecord devuelve "1" en exito
+  return text === "1" || text.includes("1");
+}
+
+// ============================================
+// 4. REPARAR RESERVE con campos FK faltantes
+// ============================================
+export async function repairReserve(reserveId: string): Promise<{ success: boolean; message: string }> {
+  let session: SolvedCargoSession;
+  try {
+    session = await login();
+  } catch (e) {
+    return { success: false, message: `Error de conexion: ${e instanceof Error ? e.message : "Desconocido"}` };
+  }
+
+  try {
+    // Actualizar los campos FK faltantes usando updateRecord
+    // Los params siguen el mismo formato de 41 posiciones
+    const updateParams = [
+      reserveId,       // [0]  idreserve ★ ID del registro a actualizar
+      "55",            // [1]  identerprise
+      "101",           // [2]  iduser
+      "",              // [3]  image ★ DISPLAY (skipped)
+      "",              // [4]  hbl (no cambiar)
+      "",              // [5]  idreservestate ★ DISPLAY (skipped)
+      "",              // [6]  shipped ★ DISPLAY (skipped)
+      "",              // [7]  idloadingguide ★ DISPLAY (skipped)
+      "11",            // [8]  idfbcnumber = 11 (ENVIOS FACTURADOS) ★ FK OBLIGATORIO
+      "ENVIOS FACTURADOS/()/(ENVIOS FACTURADOS)", // [9] idfbcguide ★ FK OBLIGATORIO
+      "",              // [10] idclasification (no cambiar)
+      "",              // [11] goods (no cambiar)
+      "",              // [12] bagnumber (no cambiar)
+      "",              // [13] datereserve (no cambiar)
+      "",              // [14] idpurchaser (no cambiar)
+      "",              // [15] idconsignee (no cambiar)
+      "",              // [16] passport ★ DISPLAY (skipped)
+      "",              // [17] cidentity ★ DISPLAY (skipped)
+      "",              // [18] street ★ DISPLAY (skipped)
+      "",              // [19] ctelephone ★ DISPLAY (skipped)
+      "",              // [20] idshipper (no cambiar)
+      "",              // [21] spassport ★ DISPLAY (skipped)
+      "",              // [22] address ★ DISPLAY (skipped)
+      "",              // [23] multhouse (no cambiar)
+      "",              // [24] pidentity ★ DISPLAY (skipped)
+      "",              // [25] ppassport ★ DISPLAY (skipped)
+      "",              // [26] ptelephone ★ DISPLAY (skipped)
+      "",              // [27] valuebill (no cambiar)
+      "",              // [28] valuedoc (no cambiar)
+      "",              // [29] quantity (no cambiar)
+      "",              // [30] weight (no cambiar)
+      "",              // [31] volume (no cambiar)
+      "",              // [32] value (no cambiar)
+      "",              // [33] idtypecorrespond (no cambiar)
+      "Master",        // [34] idguidekind = Master ★ FK OBLIGATORIO
+      "",              // [35] idguidestate ★ DISPLAY (skipped)
+      "",              // [36] valuedanger ★ DISPLAY (skipped)
+      "",              // [37] valuepaied ★ DISPLAY (skipped)
+      "",              // [38] observation (no cambiar)
+      "",              // [39] whnumber (no cambiar)
+      "",              // [40] entrydate (no cambiar)
+    ].join(";");
+
+    console.log(`[SolvedCargo] Reparando reserve ID=${reserveId} con campos FK...`);
+    const ok = await updateRecord(session, "reservef", updateParams);
+
+    if (ok) {
+      // Verificar que ahora es visible
+      await new Promise(r => setTimeout(r, 2000));
+      const visible = await verifyReserve(session, reserveId);
+      if (visible) {
+        return { success: true, message: `Reserve ${reserveId} reparado y verificado en SolvedCargo` };
+      }
+      return { success: true, message: `Reserve ${reserveId} actualizado (puede tardar en aparecer)` };
+    }
+
+    return { success: false, message: `No se pudo actualizar reserve ${reserveId}` };
+  } catch (e) {
+    return { success: false, message: `Error: ${e instanceof Error ? e.message : "Desconocido"}` };
+  }
+}
+
+// ============================================
+// 5. BUSCAR ULTIMO CPK
 // ============================================
 async function getNextCPK(session: SolvedCargoSession): Promise<string> {
   const hblBody = new URLSearchParams({
@@ -305,7 +415,7 @@ async function getNextCPK(session: SolvedCargoSession): Promise<string> {
 }
 
 // ============================================
-// 5. VERIFICAR REGISTRO EXISTE
+// 6. VERIFICAR REGISTRO EXISTE
 // ============================================
 async function verifyReserve(session: SolvedCargoSession, reserveId: string): Promise<boolean> {
   const verifyBody = new URLSearchParams({
@@ -331,7 +441,7 @@ async function verifyReserve(session: SolvedCargoSession, reserveId: string): Pr
 }
 
 // ============================================
-// 6. FLUJO COMPLETO: Crear envio CPK
+// 7. FLUJO COMPLETO: Crear envio CPK
 // ============================================
 export interface ShipmentFormData {
   // Remitente (Shipper)
@@ -459,8 +569,8 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
       "",              // [5]  idreservestate ★ DISPLAY (skipped)
       "",              // [6]  shipped ★ DISPLAY (skipped)
       "",              // [7]  idloadingguide ★ DISPLAY (skipped)
-      "",              // [8]  idfbcnumber (vacio)
-      "",              // [9]  idfbcguide (vacio)
+      "11",            // [8]  idfbcnumber = 11 (ENVIOS FACTURADOS) ★ FK OBLIGATORIO
+      "ENVIOS FACTURADOS/()/(ENVIOS FACTURADOS)", // [9] idfbcguide ★ FK OBLIGATORIO
       "44",            // [10] idclasification = 44 ("ENVIO")
       goods,           // [11] namegood -> col: goods
       "",              // [12] bagnumber (palet)
@@ -485,7 +595,7 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
       "",              // [31] volume
       "",              // [32] value
       "4",             // [33] idtypecorrespond = 4 (FBC/CPK)
-      "",              // [34] idguidekind (vacio)
+      "Master",        // [34] idguidekind = Master ★ FK OBLIGATORIO
       "",              // [35] idguidestate ★ DISPLAY (skipped)
       "",              // [36] valuedanger ★ DISPLAY (skipped)
       "",              // [37] valuepaied ★ DISPLAY (skipped)
@@ -536,7 +646,7 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
 }
 
 // ============================================
-// 7. BUSCAR ENVIOS (parsear HTML)
+// 8. BUSCAR ENVIOS (parsear HTML)
 // ============================================
 import * as cheerio from "cheerio";
 
