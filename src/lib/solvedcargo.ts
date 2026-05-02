@@ -57,7 +57,7 @@
 // [39] whnumber        -> SAVEABLE              -> param[39]
 // [40] entrydate       -> SAVEABLE              -> param[40]
 
-const BASE_URL = "https://www.solvedc.com/cargo/cargopack/v1";
+const BASE_URL = "https://www.solvedc.com/cargo/cargopack/v4";
 const API_PATH = `${BASE_URL}/php/solved/routing.php`;
 
 // IDs numericos de provincia y municipio en SolvedCargo (FK)
@@ -99,6 +99,7 @@ interface SolvedCargoSession {
   phpsessid: string;
   iduser: string;
   identerprise: string;
+  token: string;
 }
 
 // Cache de sesion en memoria (dura ~25 min)
@@ -108,39 +109,75 @@ let cachedSession: {
 } | null = null;
 
 // ============================================
-// 1. LOGIN
+// 0. OBTENER TOKEN (requerido por v4)
+// ============================================
+async function getToken(sessionId?: string): Promise<{ token: string; phpsessid: string }> {
+  console.log("[SolvedCargo] Obteniendo token...");
+  const response = await fetch(API_PATH, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      funcname: "getConfigData",
+      lang: "es",
+    }).toString(),
+    redirect: "manual",
+  });
+
+  if (!response.ok) throw new Error(`getConfigData fallo: ${response.status}`);
+
+  const setCookie = response.headers.get("set-cookie") || "";
+  const match = setCookie.match(/PHPSESSID=([^;]+)/);
+  const phpsessid = match ? match[1] : (sessionId || "");
+
+  const data = await response.json();
+  if (!data.token) throw new Error("No se obtuvo token de SolvedCargo v4");
+
+  console.log(`[SolvedCargo] Token obtenido: ${data.token.substring(0, 8)}...`);
+  return { token: data.token, phpsessid };
+}
+
+// ============================================
+// 1. LOGIN (con token v4)
 // ============================================
 export async function login(): Promise<SolvedCargoSession> {
   if (cachedSession && Date.now() < cachedSession.expiresAt) {
     return cachedSession.session;
   }
 
-  console.log("[SolvedCargo] Login...");
+  console.log("[SolvedCargo] Login v4...");
+
+  // Paso 1: Obtener token
+  const { token: cfgToken, phpsessid } = await getToken();
+  if (!phpsessid) throw new Error("No se obtuvo PHPSESSID");
+
+  // Paso 2: Login con token
+  const loginParams = new URLSearchParams({
+    token: cfgToken,
+    funcname: "loginUser",
+    user: AUTH.user,
+    password: AUTH.password,
+  });
+
   const response = await fetch(API_PATH, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      funcname: "loginUser",
-      user: AUTH.user,
-      password: AUTH.password,
-    }).toString(),
-    redirect: "manual",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: `PHPSESSID=${phpsessid}`,
+    },
+    body: loginParams.toString(),
   });
 
   if (!response.ok) throw new Error(`Login fallo: ${response.status}`);
-
-  const setCookie = response.headers.get("set-cookie") || "";
-  const match = setCookie.match(/PHPSESSID=([^;]+)/);
-  if (!match) throw new Error("No se obtuvo PHPSESSID");
 
   const data = await response.json();
   console.log(`[SolvedCargo] Login OK: iduser=${data.iduser} enterprise=${data.identerprise}`);
   if (!data.iduser) throw new Error("Login no devolvio datos");
 
   const session: SolvedCargoSession = {
-    phpsessid: match[1],
+    phpsessid,
     iduser: data.iduser,
     identerprise: data.identerprise,
+    token: cfgToken,
   };
 
   cachedSession = { session, expiresAt: Date.now() + 25 * 60 * 1000 };
@@ -152,6 +189,7 @@ export async function login(): Promise<SolvedCargoSession> {
 // ============================================
 export async function checkSession(session: SolvedCargoSession): Promise<boolean> {
   const body = new URLSearchParams({
+    token: session.token,
     funcname: "checkIfValidSession",
     username: AUTH.user,
     password: AUTH.password,
@@ -201,6 +239,7 @@ async function insertRecord(
   params: string
 ): Promise<string> {
   const body = new URLSearchParams({
+    token: session.token,
     funcname: "insertRecord",
     option,
     params,
@@ -239,6 +278,7 @@ async function updateRecord(
   params: string
 ): Promise<boolean> {
   const body = new URLSearchParams({
+    token: session.token,
     funcname: "updateRecord",
     option,
     params,
@@ -345,6 +385,7 @@ export async function repairReserve(reserveId: string): Promise<{ success: boole
 // ============================================
 async function getNextCPK(session: SolvedCargoSession): Promise<string> {
   const hblBody = new URLSearchParams({
+    token: session.token,
     funcname: "getListRecord",
     option: "reservef",
     where: `r.identerprise = ${session.identerprise} AND r.hbl LIKE 'CPK-%'`,
@@ -380,6 +421,7 @@ async function getNextCPK(session: SolvedCargoSession): Promise<string> {
   // Fallback: buscar en TODOS los registros (no solo enterprise)
   console.log(`[SolvedCargo] No se encontraron CPK para esta enterprise, buscando global...`);
   const globalBody = new URLSearchParams({
+    token: session.token,
     funcname: "getListRecord",
     option: "reservef",
     where: `r.hbl LIKE 'CPK-%'`,
@@ -419,6 +461,7 @@ async function getNextCPK(session: SolvedCargoSession): Promise<string> {
 // ============================================
 async function verifyReserve(session: SolvedCargoSession, reserveId: string): Promise<boolean> {
   const verifyBody = new URLSearchParams({
+    token: session.token,
     funcname: "getListRecord",
     option: "reservef",
     where: `r.idreserve = ${reserveId}`,
@@ -656,6 +699,7 @@ export async function searchShipments(
   option: string = "reservef"
 ): Promise<Record<string, string>[]> {
   const body = new URLSearchParams({
+    token: session.token,
     funcname: "getListRecord",
     option,
     kind: "list",
