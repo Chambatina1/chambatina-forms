@@ -100,6 +100,8 @@ function toUpperCase(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement
 }
 
 export default function ShipmentFormPage() {
+  const isEmbedded = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("embed") === "true";
+
   const [formData, setFormData] = useState<FormData>({
     sname: "", sphone: "", saddress: "", semail: "", sbirthday: "", snacionality: "",
     cname: "", cidentity: "", cphone: "", caddress: "", cprovince: "", cmunicipality: "",
@@ -177,8 +179,8 @@ export default function ShipmentFormPage() {
   // ========== VISTA DE RESULTADO ==========
   if (result) {
     return (
-      <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(135deg, #0f766e 0%, #134e4a 50%, #1e3a5f 100%)" }}>
-        <div className="flex-1 flex items-center justify-center p-4">
+      <div className={`flex flex-col ${isEmbedded ? "min-h-full" : "min-h-screen"}`} style={{ background: "linear-gradient(135deg, #0f766e 0%, #134e4a 50%, #1e3a5f 100%)" }}>
+        <div className={`flex-1 flex ${isEmbedded ? "items-start justify-center py-6" : "items-center justify-center"} p-4`}>
           <Card className="w-full max-w-lg shadow-2xl border-0">
             <CardContent className="pt-8 pb-8 text-center">
               {result.success ? (
@@ -249,6 +251,7 @@ export default function ShipmentFormPage() {
                     <FileText className="w-4 h-4" />Imprimir comprobante
                   </Button>
                 )}
+                {!isEmbedded && (
                 <a
                   href="https://plataformachambatina.onrender.com"
                   className="inline-flex items-center justify-center gap-2 px-6 py-2 rounded-md border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition-colors text-sm"
@@ -256,19 +259,21 @@ export default function ShipmentFormPage() {
                   <Globe className="w-4 h-4" />
                   Volver a la Pagina
                 </a>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
-        <footer className="text-center py-4 text-white/60 text-sm">Chambatina Miami &mdash; Registro de Envios</footer>
+        {!isEmbedded && <footer className="text-center py-4 text-white/60 text-sm">Chambatina Miami &mdash; Registro de Envios</footer>}
       </div>
     );
   }
 
   // ========== VISTA DEL FORMULARIO ==========
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(135deg, #0f766e 0%, #134e4a 50%, #1e3a5f 100%)" }}>
-      {/* Header */}
+    <div className={`flex flex-col ${isEmbedded ? "min-h-full" : "min-h-screen"}`} style={{ background: "linear-gradient(135deg, #0f766e 0%, #134e4a 50%, #1e3a5f 100%)" }}>
+      {/* Header - oculto cuando esta embebido en iframe */}
+      {!isEmbedded && (
       <header className="py-6 px-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -289,8 +294,9 @@ export default function ShipmentFormPage() {
           </a>
         </div>
       </header>
+      )}
 
-      <main className="flex-1 px-4 pb-8">
+      <main className={`flex-1 px-4 ${isEmbedded ? "py-6" : "pb-8"}`}>
         <div className="max-w-2xl mx-auto">
           {/* Info Banner */}
           <div className="mb-6 p-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
@@ -529,9 +535,11 @@ export default function ShipmentFormPage() {
         </div>
       </main>
 
+      {!isEmbedded && (
       <footer className="text-center py-4 text-white/60 text-sm">
         Chambatina Miami &mdash; Registro de Envios &mdash; {new Date().getFullYear()}
       </footer>
+      )}
     </div>
   );
 }
