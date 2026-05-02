@@ -496,7 +496,7 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
     // ==== PASO 1: Insertar SHIPPER ====
     // Shipper tiene 10 campos, todos tosave (sin display):
     const shipperName = sanitize(data.sname || "CHAMBATINA MIAMI");
-    const shipperAddr = sanitize(data.saddress || "MIAMI FL USA");
+    const shipperAddr = "";  // Direccion Emb. debe quedar en blanco en SolvedCargo
     const shipperPhone = sanitize(data.sphone || "");
     const shipperEmail = sanitize(data.semail || "");
 
@@ -601,7 +601,7 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
       "",              // [37] valuepaied ★ DISPLAY (skipped)
       observation,     // [38] observation
       "",              // [39] whnumber
-      today,           // [40] entrydate
+      "",              // [40] entrydate (debe quedar en blanco)
     ].join(";");
 
     console.log(`[SolvedCargo] Creando reserve (41 params): goods=${goods} cpk=${cpkNumber} consigneeId=${consigneeId} shipperId=${shipperId}`);
