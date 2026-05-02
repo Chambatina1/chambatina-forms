@@ -67,6 +67,8 @@ export default function AdminPage() {
   const [syncResult, setSyncResult] = useState<{ id: string; success: boolean; message: string } | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [syncingAll, setSyncingAll] = useState(false);
+  const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, success: 0, failed: 0 });
 
   const fetchShipments = useCallback(async () => {
     setLoading(true);
@@ -108,6 +110,44 @@ export default function AdminPage() {
     } finally {
       setSyncing(null);
     }
+  };
+
+  const handleSyncAll = async () => {
+    const pending = shipments.filter((s) => !s.syncedToApi);
+    if (pending.length === 0) {
+      setSyncResult({ id: "all", success: false, message: "No hay envios pendientes para cargar." });
+      return;
+    }
+    if (!confirm(`Cargar ${pending.length} envio(s) pendiente(s) a SolvedCargo?`)) return;
+
+    setSyncingAll(true);
+    setSyncResult({ id: "all", success: true, message: `Cargando 0 de ${pending.length}...` });
+    let success = 0;
+    let failed = 0;
+
+    for (let i = 0; i < pending.length; i++) {
+      setSyncProgress({ current: i + 1, total: pending.length, success, failed });
+      setSyncResult({ id: "all", success: true, message: `Cargando ${i + 1} de ${pending.length}...` });
+      try {
+        const res = await fetch(`/api/admin/sync/${pending[i].id}`, { method: "POST" });
+        const data = await res.json();
+        if (data.success) success++;
+        else failed++;
+      } catch {
+        failed++;
+      }
+    }
+
+    setSyncProgress({ current: pending.length, total: pending.length, success, failed });
+    setSyncResult({
+      id: "all",
+      success: failed === 0,
+      message: failed === 0
+        ? `Completado: ${success} envio(s) cargados a SolvedCargo.`
+        : `Completado: ${success} exitoso(s), ${failed} fallido(s) de ${pending.length} envios.`,
+    });
+    await fetchShipments();
+    setSyncingAll(false);
   };
 
   const handleDelete = async (shipment: Shipment) => {
@@ -183,7 +223,25 @@ export default function AdminPage() {
               />
               Refrescar
             </Button>
-
+            <Button
+              size="sm"
+              onClick={handleSyncAll}
+              disabled={syncingAll || pendingCount === 0}
+              className="text-white font-semibold"
+              style={{ background: "linear-gradient(135deg, #0f766e, #134e4a)" }}
+            >
+              {syncingAll ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  {syncProgress.current}/{syncProgress.total}
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-1" />
+                  Cargar Todo ({pendingCount})
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </header>
