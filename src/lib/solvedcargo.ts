@@ -207,55 +207,43 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
     console.log(`[SolvedCargo] Consignee creado: ID=${consigneeId}`);
 
     // ---- PASO 3: Insertar RESERVE (envío) ----
-    // 41 campos: índices 0-40
-    // PHP toma tosave=true únicos por fldtbl y los inserta en la tabla reserve
+    // Columnas reales de la tabla reserve (confirmado via SQL):
+    // identerprise, iduser, hbl, idfbcnumber, idfbcguide, idclasification,
+    // goods, bagnumber, datereserve, idpurchaser, idconsignee, idshipper,
+    // multhouse, valuebill, valuedoc, quantity, weight, volume, value,
+    // idtypecorrespond, idguidekind, observation, whnumber, entrydate
     const goods = sanitize(data.description || "ENVIO");
     const quantity = data.npieces || "1";
     const weight = data.weight || "1";
     const observation = sanitize(data.cnotes || "");
+    const today = new Date().toISOString().split("T")[0];
 
     const reserveParams = [
       "",                    // [0] idreserve (auto)
       session.identerprise,  // [1] identerprise
       AUTH.iduser,           // [2] iduser
-      "",                    // [3] image
-      "",                    // [4] hbl (auto-generated CPK)
-      "",                    // [5] idreservestate
-      "",                    // [6] shipped
-      "",                    // [7] idloadingguide
-      "",                    // [8] idfbcnumber
-      "",                    // [9] idfbcguide
-      "",                    // [10] idclasification
-      goods,                 // [11] goods/mercancía
-      "",                    // [12] bagnumber
-      new Date().toISOString().split("T")[0], // [13] datereserve
-      "",                    // [14] idpurchaser
-      consigneeId,           // [15] idconsignee
-      "",                    // [16] passport consignee
-      identity,              // [17] cidentity consignee
-      street,                // [18] street consignee
-      phone,                 // [19] ctelephone consignee
-      shipperId,             // [20] idshipper
-      "",                    // [21] spassport shipper
-      "",                    // [22] address shipper
-      "0",                   // [23] multhouse
-      "",                    // [24] pidentity
-      "",                    // [25] ppassport
-      "",                    // [26] ptelephone
-      "0",                   // [27] valuebill
-      "0",                   // [28] valuedoc
-      quantity,              // [29] quantity
-      weight,                // [30] weight
-      "0",                   // [31] volume
-      "0",                   // [32] value
-      "4",                   // [33] idtypecorrespond (4 = FBC/CPK)
-      "",                    // [34] idguidekind
-      "",                    // [35] idguidestate
-      "0",                   // [36] valuedanger
-      "0",                   // [37] valuepaied
-      observation,           // [38] observation
-      "",                    // [39] whnumber
-      "",                    // [40] entrydate
+      "",                    // [3] hbl (auto-generated CPK para typecorrespond=4)
+      "",                    // [4] idfbcnumber
+      "",                    // [5] idfbcguide
+      "ENVIO",               // [6] idclasification (CAMPO REQUERIDO - sin esto no genera CPK)
+      goods,                 // [7] goods/mercancía
+      "",                    // [8] bagnumber
+      today,                 // [9] datereserve
+      "",                    // [10] idpurchaser
+      consigneeId,           // [11] idconsignee
+      shipperId,             // [12] idshipper
+      "0",                   // [13] multhouse
+      "0",                   // [14] valuebill
+      "0",                   // [15] valuedoc
+      quantity,              // [16] quantity
+      weight,                // [17] weight
+      "0",                   // [18] volume
+      "0",                   // [19] value
+      "4",                   // [20] idtypecorrespond (4 = FBC/CPK)
+      "",                    // [21] idguidekind
+      observation,           // [22] observation
+      "",                    // [23] whnumber
+      today,                 // [24] entrydate
     ].join(";");
 
     console.log(`[SolvedCargo] Creando reserve: goods=${data.description} weight=${data.weight}`);
