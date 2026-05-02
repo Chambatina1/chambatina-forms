@@ -31,6 +31,7 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
+  ArrowLeft,
 } from "lucide-react";
 
 interface Shipment {
@@ -210,6 +211,12 @@ export default function AdminPage() {
           <div className="flex items-center gap-2">
             <a href="/" className="text-xs text-white/70 hover:text-white flex items-center gap-1 mr-2">
               <Package className="w-3 h-3" /> Formulario
+            </a>
+            <a
+              href="https://plataformachambatina.onrender.com"
+              className="text-xs text-amber-200 hover:text-white flex items-center gap-1 mr-2"
+            >
+              <ArrowLeft className="w-3 h-3" /> Volver
             </a>
             <Button
               variant="ghost"
