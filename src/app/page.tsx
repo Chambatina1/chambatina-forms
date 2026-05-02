@@ -49,6 +49,7 @@ interface FormData {
   cphone: string;
   caddress: string;
   cprovince: string;
+  cmunicipality: string;
   weight: string;
   npieces: string;
   description: string;
@@ -69,6 +70,26 @@ const PROVINCIAS = [
   "LAS TUNAS", "HOLGUIN", "GRANMA", "SANTIAGO DE CUBA", "GUANTANAMO", "ISLA DE LA JUVENTUD",
 ];
 
+// Municipios por provincia — datos de SolvedCargo
+const MUNICIPIOS_POR_PROVINCIA: Record<string, string[]> = {
+  "PINAR DEL RIO": ["PINAR DEL RIO", "CONSOLACION DEL SUR", "SAN JUAN Y MARTINEZ", "LOS PALACIOS", "SANDINO", "GUANE", "LA PALMA", "SAN LUIS", "MINAS DE MATAHAMBRE", "VINALES", "MANTUA"],
+  "ARTEMISA": ["MARIEL", "GUANAJAY", "CAIMITO", "BAUTA", "SAN ANTONIO DE LOS BANOS", "GUIRA DE MELENA", "ALQUIZAR", "ARTEMISA", "BAHIA HONDA", "CANDELARIA", "SAN CRISTOBAL"],
+  "LA HABANA": ["GUANABACOA", "ARROYO NARANJO", "BOYEROS", "CENTRO HABANA", "CERRO", "COTORRO", "DIEZ DE OCTUBRE", "HABANA DEL ESTE", "LA HABANA VIEJA", "LA LISA", "MARIANAO", "PLAYA", "PLAZA", "REGLA", "SAN MIGUEL DEL PADRON"],
+  "MAYABEQUE": ["BEJUCAL", "SAN JOSE DE LAS LAJAS", "JARUCO", "SANTA CRUZ DEL NORTE", "MADRUGA", "NUEVA PAZ", "SAN NICOLAS DE BARI", "GUINES", "MELENA DEL SUR", "BATABANO", "QUIVICAN"],
+  "MATANZAS": ["CALIMETE", "CARDENAS", "CIENAGA DE ZAPATA", "COLON", "JAGUEY GRANDE", "JOVELLANOS", "LIMONAR", "LOS ARABOS", "MARTI", "MATANZAS", "PEDRO BETANCOURT", "PERICO", "UNION DE REYES"],
+  "CIENFUEGOS": ["ABREUS", "AGUADA DE PASAJEROS", "CIENFUEGOS", "CRUCES", "CUMANAYAGUA", "LAJAS", "PALMIRA", "RODAS"],
+  "VILLA CLARA": ["CAIBARIEN", "CAMAJUANI", "CIFUENTES", "CORRALILLO", "ENCRUCIJADA", "MANICARAGUA", "PLACETAS", "QUEMADO DE GUINES", "RANCHUELO", "REMEDIOS", "SAGUA LA GRANDE", "SANTA CLARA", "SANTO DOMINGO"],
+  "SANCTI SPIRITUS": ["SANCTI SPIRITUS", "TRINIDAD", "CABAIGUAN", "YAGUAJAY", "JATIBONICO", "TAGUASCO", "FOMENTO", "LA SIERPE"],
+  "CIEGO DE AVILA": ["CIEGO DE AVILA", "MORON", "CHAMBAS", "CIRO REDONDO", "MAJAGUA", "FLORENCIA", "BARAGUA", "PRIMERO DE ENERO", "VENEZUELA"],
+  "CAMAGUEY": ["CAMAGUEY", "BOLIVIA", "GUAIMARO", "NUEVITAS", "CESPEDES", "JIMAGUAYU", "SIBANICU", "ESMERALDA", "MINAS", "SIERRA DE CUBITAS", "FLORIDA", "NAJASA", "VERTIENTES", "SANTA CRUZ DEL SUR"],
+  "LAS TUNAS": ["AMANCIO", "COLOMBIA", "JESUS MENENDEZ", "JOBABO", "MAJIBACOA", "MANATI", "LAS TUNAS", "PUERTO PADRE"],
+  "HOLGUIN": ["ANTILLA", "BAGUANOS", "BANES", "CACOCUM", "CALIXTO GARCIA", "CUETO", "FRANK PAIS", "GIBARA", "HOLGUIN", "MAYARI", "MOA", "RAFAEL FREYRE", "SAGUA DE TANAMO", "URBANO NORIS"],
+  "GRANMA": ["BARTOLOME MASO", "BAYAMO", "BUEY ARRIBA", "CAMPECHUELA", "CAUTO CRISTO", "GUISA", "JIGUANI", "MANZANILLO", "MEDIA LUNA", "NIQUERO", "PILON", "RIO CAUTO", "YARA"],
+  "SANTIAGO DE CUBA": ["CONTRAMAESTRE", "GUAMA", "MELLA", "PALMA SORIANO", "SAN LUIS", "SANTIAGO DE CUBA", "SEGUNDO FRENTE", "SONGO-LA MAYA", "TERCER FRENTE"],
+  "GUANTANAMO": ["BARACOA", "CAIMANERA", "EL SALVADOR", "GUANTANAMO", "IMIAS", "MAISI", "MANUEL TAMES", "NICETO PEREZ", "SAN ANTONIO DEL SUR", "YATERAS"],
+  "ISLA DE LA JUVENTUD": ["ISLA DE LA JUVENTUD", "GERONA", "LA FE"],
+};
+
 function toUpperCase(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
   const target = e.target;
   const start = target.selectionStart;
@@ -80,7 +101,7 @@ function toUpperCase(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement
 export default function ShipmentFormPage() {
   const [formData, setFormData] = useState<FormData>({
     sname: "", sphone: "", saddress: "", semail: "", sbirthday: "", snacionality: "",
-    cname: "", cidentity: "", cphone: "", caddress: "", cprovince: "",
+    cname: "", cidentity: "", cphone: "", caddress: "", cprovince: "", cmunicipality: "",
     weight: "", npieces: "1", description: "",
   });
 
@@ -108,6 +129,7 @@ export default function ShipmentFormPage() {
     else if (formData.cidentity.replace(/\s/g, "").length < 11) e.cidentity = "Minimo 11 caracteres";
     if (!formData.cphone.trim()) e.cphone = "El telefono es obligatorio";
     if (!formData.cprovince) e.cprovince = "Seleccione una provincia";
+    if (!formData.cmunicipality) e.cmunicipality = "Seleccione un municipio";
     if (!formData.weight.trim() || parseFloat(formData.weight) <= 0) e.weight = "Peso invalido";
     if (!formData.description.trim()) e.description = "Describa la mercancia";
     setErrors(e);
@@ -138,7 +160,7 @@ export default function ShipmentFormPage() {
     setResult(null);
     setFormData({
       sname: "", sphone: "", saddress: "", semail: "", sbirthday: "", snacionality: "",
-      cname: "", cidentity: "", cphone: "", caddress: "", cprovince: "",
+      cname: "", cidentity: "", cphone: "", caddress: "", cprovince: "", cmunicipality: "",
       weight: "", npieces: "1", description: "",
     });
     setErrors({});
@@ -199,6 +221,7 @@ export default function ShipmentFormPage() {
                       <div><span className="font-medium">CI:</span> {formData.cidentity}</div>
                       <div><span className="font-medium">Tel destinatario:</span> {formData.cphone}</div>
                       <div><span className="font-medium">Provincia:</span> {formData.cprovince}</div>
+                      <div><span className="font-medium">Municipio:</span> {formData.cmunicipality || "-"}</div>
                       <div><span className="font-medium">Peso:</span> {formData.weight} lb</div>
                       <div><span className="font-medium">Bultos:</span> {formData.npieces}</div>
                       <div className="col-span-2"><span className="font-medium">Mercancia:</span> {formData.description.toUpperCase()}</div>
@@ -399,13 +422,25 @@ export default function ShipmentFormPage() {
                 <CardDescription className="text-white/70">Donde se entregara el envio en Cuba</CardDescription>
               </CardHeader>
               <CardContent className="pt-5 space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Provincia *</Label>
-                  <Select value={formData.cprovince} onValueChange={(val) => updateField("cprovince", val)}>
-                    <SelectTrigger className="w-full"><SelectValue placeholder="Seleccione la provincia" /></SelectTrigger>
-                    <SelectContent>{PROVINCIAS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-                  </Select>
-                  {errors.cprovince && <p className="text-red-500 text-xs">{errors.cprovince}</p>}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Provincia *</Label>
+                    <Select value={formData.cprovince} onValueChange={(val) => { updateField("cprovince", val); updateField("cmunicipality", ""); }}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Seleccione la provincia" /></SelectTrigger>
+                      <SelectContent>{PROVINCIAS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                    </Select>
+                    {errors.cprovince && <p className="text-red-500 text-xs">{errors.cprovince}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Municipio *</Label>
+                    <Select value={formData.cmunicipality} onValueChange={(val) => updateField("cmunicipality", val)} disabled={!formData.cprovince}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder={formData.cprovince ? "Seleccione el municipio" : "Primero seleccione provincia"} /></SelectTrigger>
+                      <SelectContent>
+                        {formData.cprovince && (MUNICIPIOS_POR_PROVINCIA[formData.cprovince] || []).map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    {errors.cmunicipality && <p className="text-red-500 text-xs">{errors.cmunicipality}</p>}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="caddress" className="text-sm font-medium">Direccion detallada</Label>

@@ -171,6 +171,7 @@ export interface ShipmentFormData {
   cphone: string;
   caddress: string;
   cprovince: string;
+  cmunicipality: string;
   // Envío
   weight: string;
   npieces: string;
@@ -255,8 +256,8 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
       "",              // [13] between2
       "",              // [14] apartment
       "",              // [15] floor
-      "",              // [16] idmunicipality (empty - not collected)
-      data.cprovince || "",      // [17] idprovince (TEXT like "LA HABANA", not number!)
+      data.cmunicipality || "",  // [16] idmunicipality (TEXT como "PLAYA") — OBLIGATORIO
+      data.cprovince || "",       // [17] idprovince (TEXT como "LA HABANA")
       "",              // [18] email
       "",              // [19] observation
       session.identerprise,      // [20] identerprise

@@ -50,6 +50,7 @@ interface Shipment {
   cphone: string;
   caddress: string;
   cprovince: string;
+  cmunicipality: string;
   weight: string;
   npieces: string;
   description: string;
@@ -376,6 +377,7 @@ export default function AdminPage() {
                       <TableHead className="font-semibold text-xs">DESTINATARIO</TableHead>
                       <TableHead className="font-semibold text-xs">CI</TableHead>
                       <TableHead className="font-semibold text-xs">PROVINCIA</TableHead>
+                      <TableHead className="font-semibold text-xs">MUNICIPIO</TableHead>
                       <TableHead className="font-semibold text-xs">MERCANCIA</TableHead>
                       <TableHead className="font-semibold text-xs">ESTADO</TableHead>
                       <TableHead className="font-semibold text-xs text-center">ACCIONES</TableHead>
@@ -421,6 +423,9 @@ export default function AdminPage() {
                             </TableCell>
                             <TableCell className="text-xs">
                               {shipment.cprovince || "-"}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {shipment.cmunicipality || "-"}
                             </TableCell>
                             <TableCell className="text-xs max-w-[150px] truncate">
                               {shipment.description}
@@ -519,6 +524,10 @@ export default function AdminPage() {
                                           <p>
                                             <span className="text-muted-foreground">Provincia:</span>{" "}
                                             {shipment.cprovince || "-"}
+                                          </p>
+                                          <p>
+                                            <span className="text-muted-foreground">Municipio:</span>{" "}
+                                            {shipment.cmunicipality || "-"}
                                           </p>
                                           <p>
                                             <span className="text-muted-foreground">Direccion:</span>{" "}
@@ -647,7 +656,7 @@ export default function AdminPage() {
                           {isExpanded && (
                             <TableRow key={`${shipment.id}-expanded`}>
                               <TableCell
-                                colSpan={8}
+                                colSpan={9}
                                 className="bg-gray-50/80 p-4"
                               >
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">

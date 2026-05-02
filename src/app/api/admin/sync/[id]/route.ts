@@ -59,6 +59,7 @@ export async function POST(
       cphone: (s.cphone as string) || "",
       caddress: (s.caddress as string) || "",
       cprovince: (s.cprovince as string) || "",
+      cmunicipality: (s.cmunicipality as string) || "",
       weight: (s.weight as string) || "",
       npieces: (s.npieces as string) || "1",
       description: (s.description as string) || "",

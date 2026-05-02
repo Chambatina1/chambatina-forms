@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
         cphone: (body.cphone || "").toUpperCase().trim(),
         caddress: (body.caddress || "").toUpperCase().trim(),
         cprovince: (body.cprovince || "").toUpperCase().trim(),
+        cmunicipality: (body.cmunicipality || "").toUpperCase().trim(),
         weight: body.weight || "",
         npieces: body.npieces || "1",
         description: (body.description || "").toUpperCase().trim(),
