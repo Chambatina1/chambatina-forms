@@ -247,6 +247,38 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-7xl mx-auto p-4 space-y-4">
+        {/* Administrar Envíos - Botón principal */}
+        <button
+          onClick={() => document.getElementById("envios-table")?.scrollIntoView({ behavior: "smooth" })}
+          className="w-full group cursor-pointer"
+        >
+          <div className="relative overflow-hidden rounded-2xl shadow-2xl p-6 md:p-8 transition-all duration-300 hover:scale-[1.01] hover:shadow-3xl" style={{ background: "linear-gradient(135deg, #0f766e 0%, #134e4a 40%, #1e3a5f 100%)" }}>
+            <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-white/5 -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full bg-white/5 translate-y-1/2 -translate-x-1/2" />
+            <div className="relative flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+                  <Upload className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-white text-left">
+                  <h2 className="text-2xl font-bold">Administrar Envios</h2>
+                  <p className="text-white/70 text-sm mt-1">Revisar, decidir y subir envios a SolvedCargo</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                {pendingCount > 0 && (
+                  <div className="bg-amber-500 text-white text-sm font-bold px-4 py-2 rounded-lg">
+                    {pendingCount} pendiente(s)
+                  </div>
+                )}
+                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                  <ChevronDown className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </button>
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card className="border-0 shadow-lg">
@@ -318,7 +350,7 @@ export default function AdminPage() {
         )}
 
         {/* Shipments Table */}
-        <Card className="border-0 shadow-lg overflow-hidden">
+        <Card id="envios-table" className="border-0 shadow-lg overflow-hidden">
           <CardHeader className="pb-3" style={{ background: "linear-gradient(135deg, #0f766e, #134e4a)" }}>
             <CardTitle className="text-white text-lg flex items-center gap-2">
               <Package className="w-5 h-5" />
