@@ -93,9 +93,9 @@ function buildCookie(session: SolvedCargoSession): string {
   return `PHPSESSID=${session.phpsessid}`;
 }
 
-// Reemplaza espacios con + para evitar bugs de SQL en SolvedCargo
+// Elimina caracteres problemáticos para SQL pero mantiene espacios
 function sanitize(value: string): string {
-  return value.replace(/ /g, "+");
+  return value.replace(/[;#&|]/g, "");
 }
 
 // ============================================
