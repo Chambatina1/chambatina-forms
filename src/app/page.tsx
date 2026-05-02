@@ -262,14 +262,23 @@ export default function ShipmentFormPage() {
     <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(135deg, #0f766e 0%, #134e4a 50%, #1e3a5f 100%)" }}>
       {/* Header */}
       <header className="py-6 px-4">
-        <div className="max-w-2xl mx-auto flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center flex-shrink-0">
-            <img src="/logo-chambatina.png" alt="Chambatina" className="w-10 h-10 object-contain" />
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center flex-shrink-0">
+              <img src="/logo-chambatina.png" alt="Chambatina" className="w-10 h-10 object-contain" />
+            </div>
+            <div className="text-white">
+              <h1 className="text-xl font-bold tracking-tight">Chambatina Miami</h1>
+              <p className="text-white/70 text-sm">Registro de Envios</p>
+            </div>
           </div>
-          <div className="text-white">
-            <h1 className="text-xl font-bold tracking-tight">Chambatina Miami</h1>
-            <p className="text-white/70 text-sm">Registro de Envios</p>
-          </div>
+          <a
+            href="https://plataformachambatina.onrender.com"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-white text-sm font-medium transition-all duration-200 backdrop-blur-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Volver
+          </a>
         </div>
       </header>
 
