@@ -179,19 +179,26 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
 
   try {
     // ---- PASO 1: Insertar SHIPPER (embarcador) ----
-    // Schema: [0]="" [1]=name [2]=address [3]=passport [4]=phone [5]=birthday [6]=nacionality [7]=email [8]=observation [9]=enterprise
+    // Schema (10 columnas, confirmado via API getNewRow):
+    // [0]="" [1]=name [2]=address [3]=passport [4]=phone
+    // [5]=birthday [6]=nacionality [7]=email [8]=observation [9]=identerprise
     const shipperName = sanitize(data.sname || "CHAMBATINA MIAMI");
     const shipperAddr = sanitize(data.saddress || "MIAMI FL USA");
     const shipperPhone = sanitize(data.sphone || "");
     const shipperEmail = sanitize(data.semail || "");
 
-    const shipperParams = `;${shipperName};${shipperAddr};;;${shipperPhone};;USA;${shipperEmail};;${session.identerprise}`;
+    const shipperParams = `;${shipperName};${shipperAddr};;${shipperPhone};;USA;${shipperEmail};${session.identerprise}`;
     console.log(`[SolvedCargo] Creando shipper: ${data.sname}`);
     const shipperId = await insertRecord(session, "shipper", shipperParams);
     console.log(`[SolvedCargo] Shipper creado: ID=${shipperId}`);
 
     // ---- PASO 2: Insertar CONSIGNEE (destinatario) ----
-    // Schema: [0]="" [1]=firstname [2]=secondname [3]=surname [4]=sndsurname [5]=identity [6]=telephone [7]=mobile [8]=passport [9]="" [10]=street [11]=entre [12]=y [13]=num [14]=apto [15]=piso [16]=enterprise
+    // Schema (21 columnas, confirmado via API getNewRow):
+    // [0]="" [1]=firstname [2]=secondname [3]=surname [4]=sndsurname
+    // [5]=passport [6]=identity [7]=nacionality [8]=telephone [9]=mobile
+    // [10]=street [11]=building [12]=between1 [13]=between2
+    // [14]=apartment [15]=floor [16]=idmunicipality [17]=idprovince
+    // [18]=email [19]=observation [20]=identerprise
     const parts = data.cname.toUpperCase().trim().split(/\s+/);
     const firstname = sanitize(parts[0] || "");
     const secondname = sanitize(parts[1] || "");
@@ -200,18 +207,42 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
     const identity = sanitize(data.cidentity);
     const phone = sanitize(data.cphone);
     const street = sanitize(data.caddress);
+    const province = sanitize(data.cprovince || "");
 
-    const consigneeParams = `;${firstname};${secondname};${surname};${sndsurname};${identity};${phone};;;${street};;;;;${session.identerprise}`;
+    const consigneeParams = [
+      "",           // [0] idconsignee (auto)
+      firstname,    // [1] firstname
+      secondname,   // [2] secondname
+      surname,      // [3] surname
+      sndsurname,   // [4] sndsurname
+      "",           // [5] passport
+      identity,     // [6] identity
+      "",           // [7] nacionality
+      phone,        // [8] telephone
+      "",           // [9] mobile
+      street,       // [10] street
+      "",           // [11] building
+      "",           // [12] between1
+      "",           // [13] between2
+      "",           // [14] apartment
+      "",           // [15] floor
+      "",           // [16] idmunicipality
+      province,     // [17] idprovince
+      "",           // [18] email
+      "",           // [19] observation
+      session.identerprise, // [20] identerprise
+    ].join(";");
     console.log(`[SolvedCargo] Creando consignee: ${data.cname}`);
     const consigneeId = await insertRecord(session, "consignee", consigneeParams);
     console.log(`[SolvedCargo] Consignee creado: ID=${consigneeId}`);
 
     // ---- PASO 3: Insertar RESERVE (envío) ----
-    // Columnas reales de la tabla reserve (confirmado via SQL):
-    // identerprise, iduser, hbl, idfbcnumber, idfbcguide, idclasification,
-    // goods, bagnumber, datereserve, idpurchaser, idconsignee, idshipper,
-    // multhouse, valuebill, valuedoc, quantity, weight, volume, value,
-    // idtypecorrespond, idguidekind, observation, whnumber, entrydate
+    // Columnas reales de la tabla reserve (25 columnas, confirmado via SQL del error):
+    // [0]idreserve [1]identerprise [2]iduser [3]hbl [4]idfbcnumber [5]idfbcguide
+    // [6]idclasification [7]goods [8]bagnumber [9]datereserve [10]idpurchaser
+    // [11]idconsignee [12]idshipper [13]multhouse [14]valuebill [15]valuedoc
+    // [16]quantity [17]weight [18]volume [19]value [20]idtypecorrespond
+    // [21]idguidekind [22]observation [23]whnumber [24]entrydate
     const goods = sanitize(data.description || "ENVIO");
     const quantity = data.npieces || "1";
     const weight = data.weight || "1";
@@ -225,7 +256,7 @@ export async function createFullShipment(data: ShipmentFormData): Promise<Shipme
       "",                    // [3] hbl (auto-generated CPK para typecorrespond=4)
       "",                    // [4] idfbcnumber
       "",                    // [5] idfbcguide
-      "ENVIO",               // [6] idclasification (CAMPO REQUERIDO - sin esto no genera CPK)
+      "44",                  // [6] idclasification (ID=44 = "ENVIO" en la tabla clasification)
       goods,                 // [7] goods/mercancía
       "",                    // [8] bagnumber
       today,                 // [9] datereserve

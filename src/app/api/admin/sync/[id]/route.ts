@@ -23,12 +23,15 @@ export async function POST(
 
     const s = shipment as Record<string, unknown>;
 
-    // Verificar si ya fue sincronizado
-    if (s.syncedToApi) {
-      console.log(`[Admin Sync] Envio ya sincronizado: ${id}`);
+    // Permitir re-sincronizar con query param force=true
+    const { searchParams } = new URL(request.url);
+    const forceSync = searchParams.get("force") === "true";
+
+    if (s.syncedToApi && !forceSync) {
+      console.log(`[Admin Sync] Envio ya sincronizado: ${id} (usar ?force=true para re-sync)`);
       return NextResponse.json({
         success: false,
-        message: "Este envio ya fue cargado a SolvedCargo anteriormente.",
+        message: "Este envio ya fue cargado a SolvedCargo. Use ?force=true para re-sincronizar.",
         alreadySynced: true,
         reserveId: s.cpkNumber,
       });
