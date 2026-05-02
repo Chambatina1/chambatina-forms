@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -22,13 +21,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  ShieldCheck,
   Eye,
   Upload,
   CheckCircle2,
   AlertCircle,
   Loader2,
-  LogOut,
   Package,
   RefreshCw,
   ChevronDown,
@@ -63,12 +60,7 @@ interface Shipment {
   status?: string;
 }
 
-const ADMIN_PASSWORD = "chambatina-admin-2026";
-
 export default function AdminPage() {
-  const [authenticated, setAuthenticated] = useState(false);
-  const [password, setPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
@@ -79,7 +71,7 @@ export default function AdminPage() {
   const fetchShipments = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/submit?key=chambatina-admin-2026");
+      const res = await fetch("/api/submit");
       const data = await res.json();
       if (data.success) {
         setShipments(data.shipments || []);
@@ -92,20 +84,8 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (authenticated) {
-      fetchShipments();
-    }
-  }, [authenticated, fetchShipments]);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setAuthenticated(true);
-      setPasswordError("");
-    } else {
-      setPasswordError("Clave incorrecta");
-    }
-  };
+    fetchShipments();
+  }, [fetchShipments]);
 
   const handleSync = async (shipment: Shipment) => {
     setSyncing(shipment.id);
@@ -159,63 +139,6 @@ export default function AdminPage() {
     });
   };
 
-  // =========== LOGIN SCREEN ===========
-  if (!authenticated) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center p-4"
-        style={{
-          background:
-            "linear-gradient(135deg, #0f766e 0%, #134e4a 50%, #1e3a5f 100%)",
-        }}
-      >
-        <Card className="w-full max-w-md shadow-2xl border-0">
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto w-16 h-16 rounded-xl overflow-hidden bg-amber-100 flex items-center justify-center mb-3">
-              <ShieldCheck className="w-9 h-9 text-amber-700" />
-            </div>
-            <CardTitle
-              className="text-xl font-bold"
-              style={{ color: "#134e4a" }}
-            >
-              Panel de Administracion
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Chambatina Miami
-            </p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Clave de acceso</label>
-                <Input
-                  type="password"
-                  placeholder="Ingrese la clave"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-12"
-                />
-                {passwordError && (
-                  <p className="text-red-500 text-xs">{passwordError}</p>
-                )}
-              </div>
-              <Button
-                type="submit"
-                className="w-full h-12 text-white font-semibold"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #0f766e, #134e4a)",
-                }}
-              >
-                Ingresar
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // =========== ADMIN DASHBOARD ===========
   const syncedCount = shipments.filter((s) => s.syncedToApi).length;
   const pendingCount = shipments.filter((s) => !s.syncedToApi).length;
@@ -260,15 +183,7 @@ export default function AdminPage() {
               />
               Refrescar
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setAuthenticated(false)}
-              className="text-white/80 hover:text-white hover:bg-white/10"
-            >
-              <LogOut className="w-4 h-4 mr-1" />
-              Salir
-            </Button>
+
           </div>
         </div>
       </header>

@@ -78,13 +78,6 @@ export async function POST(request: NextRequest) {
 // GET - Obtener todos los envios (admin)
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const adminKey = searchParams.get("key");
-
-    if (adminKey !== "chambatina-admin-2026") {
-      return NextResponse.json({ success: false, message: "No autorizado" }, { status: 401 });
-    }
-
     const shipments = await db.shipment.findMany({
       orderBy: { createdAt: "desc" },
       take: 100,
